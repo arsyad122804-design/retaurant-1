@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maison Resto - Haute Gastronomie & Sistem Manajemen Terpadu</title>
+  <link rel="stylesheet" href="/css/maison-theme.css">
+  <style>
+    .hero-section {
+      min-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 4rem 1.5rem;
+      background: radial-gradient(circle at center, rgba(212, 175, 55, 0.15) 0%, rgba(8, 9, 12, 0.95) 75%);
+      position: relative;
+    }
+
+    .hero-crest {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background: var(--gradient-gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #08090c;
+      font-family: var(--font-serif);
+      font-weight: 800;
+      font-size: 2.8rem;
+      box-shadow: 0 0 35px rgba(212, 175, 55, 0.4);
+      margin-bottom: 1.5rem;
+      border: 2px solid #fff;
+    }
+
+    .hero-title {
+      font-size: 3.5rem;
+      letter-spacing: 0.12em;
+      margin-bottom: 0.5rem;
+      line-height: 1.1;
+    }
+
+    .hero-subtitle {
+      color: var(--gold-primary);
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      font-size: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-desc {
+      max-width: 680px;
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      line-height: 1.7;
+      margin-bottom: 2.5rem;
+    }
+
+    .portals-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+      gap: 1.5rem;
+      max-width: 1250px;
+      margin: -2rem auto 4rem;
+      padding: 0 1.5rem;
+      position: relative;
+      z-index: 10;
+    }
+
+    .portal-card {
+      background: var(--bg-card);
+      border: 1px solid var(--gold-border);
+      border-radius: 14px;
+      padding: 2rem 1.5rem;
+      transition: var(--transition);
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-md);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .portal-card:hover {
+      transform: translateY(-6px);
+      border-color: var(--gold-primary);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.8), var(--gold-glow);
+    }
+
+    .portal-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .portal-role-tag {
+      font-size: 0.72rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .portal-card h3 {
+      font-size: 1.3rem;
+      margin-bottom: 0.75rem;
+      color: #fff;
+    }
+
+    .portal-card p {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+      flex: 1;
+    }
+
+    .flow-step-box {
+      background: rgba(16, 18, 24, 0.8);
+      border: 1px solid var(--gold-border);
+      border-radius: 10px;
+      padding: 1.25rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <header class="maison-nav">
+    <div class="brand-wrapper">
+      <div class="brand-logo">M</div>
+      <div class="brand-text">
+        <h1 class="serif-title">MAISON RESTO</h1>
+        <p>Haute Gastronomie</p>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <a href="/pesan" class="btn-gold btn-sm">
+        <span>🍽 Menu Tamu (/pesan)</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="hero-crest">M</div>
+    <div class="hero-subtitle">Haute Gastronomie & Sistem Manajemen Terpadu</div>
+    <h1 class="hero-title serif-title">MAISON RESTO</h1>
+    <p class="hero-desc">
+      Aplikasi restoran mewah dengan arsitektur <strong>4 Halaman Terpisah</strong> dan <strong>3 Sistem Login Mandiri</strong>. 
+      Semua divisi terhubung real-time dalam satu database terpadu: Pesanan pelanggan, antrean dapur, kasir & pemotongan stok otomatis berdasarkan resep.
+    </p>
+
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;">
+      <a href="/pesan" class="btn-gold" style="font-size: 1rem; padding: 0.85rem 2rem;">
+        <span>🍽 Buka Halaman Tamu (/pesan)</span>
+      </a>
+      <a href="/owner/login" class="btn-outline-gold" style="font-size: 1rem; padding: 0.85rem 1.8rem;">
+        <span>👑 Login Owner</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- Portals Grid -->
+  <main class="portals-grid">
+    
+    <!-- 1. Customer Ordering -->
+    <div class="portal-card" style="border-top: 4px solid var(--gold-bright);">
+      <div class="portal-icon">🍽</div>
+      <span class="portal-role-tag" style="color: var(--gold-bright);">Halaman 1 &bull; Publik (Tanpa Login)</span>
+      <h3 class="serif-title">Menu & Pemesanan Tamu</h3>
+      <p>
+        Customer langsung membuka daftar hidangan, melihat foto dan harga, memilih makanan/minuman, menentukan nomor meja, dan mengirim pesanan tanpa akun/password.
+      </p>
+      <div style="font-size: 0.75rem; color: var(--gold-light); margin-bottom: 1rem;">
+        URL: <code>/pesan</code> &bull; Akses: Publik
+      </div>
+      <a href="/pesan" class="btn-gold" style="justify-content: center;">
+        Masuk /pesan
+      </a>
+    </div>
+
+    <!-- 2. Kasir Portal -->
+    <div class="portal-card" style="border-top: 4px solid #10b981;">
+      <div class="portal-icon">💵</div>
+      <span class="portal-role-tag" style="color: #34d399;">Halaman 2 &bull; Login Kasir</span>
+      <h3 class="serif-title">Portal Kasir & Struk</h3>
+      <p>
+        Menerima pesanan masuk real-time dari tamu meja, memproses pembayaran (Cash, QRIS, Kartu), mencetak struk thermal, dan riwayat transaksi lengkap.
+      </p>
+      <div style="font-size: 0.75rem; color: #34d399; margin-bottom: 1rem;">
+        URL: <code>/kasir</code> &bull; Login: <code>/kasir/login</code>
+      </div>
+      <a href="/kasir/login" class="btn-outline-gold" style="justify-content: center; border-color: #10b981; color: #34d399;">
+        Login Kasir
+      </a>
+    </div>
+
+    <!-- 3. Dapur & Gudang Portal -->
+    <div class="portal-card" style="border-top: 4px solid #3b82f6;">
+      <div class="portal-icon">👨‍🍳</div>
+      <span class="portal-role-tag" style="color: #60a5fa;">Halaman 3 &bull; Login Dapur</span>
+      <h3 class="serif-title">Dapur, Resep & Gudang</h3>
+      <p>
+        Antrean masak langsung dari tamu, kelola menu makanan/minuman, hubungkan resep bahan baku per porsi (auto stock deduction), dan catat bahan masuk (restock).
+      </p>
+      <div style="font-size: 0.75rem; color: #60a5fa; margin-bottom: 1rem;">
+        URL: <code>/dapur</code> &bull; Login: <code>/dapur/login</code>
+      </div>
+      <a href="/dapur/login" class="btn-outline-gold" style="justify-content: center; border-color: #3b82f6; color: #60a5fa;">
+        Login Dapur
+      </a>
+    </div>
+
+    <!-- 4. Owner Portal -->
+    <div class="portal-card" style="border-top: 4px solid var(--gold-primary);">
+      <div class="portal-icon">👑</div>
+      <span class="portal-role-tag" style="color: var(--gold-light);">Halaman 4 &bull; Login Owner</span>
+      <h3 class="serif-title">Dashboard Eksekutif Owner</h3>
+      <p>
+        Pantau pendapatan harian, mingguan, bulanan, tahunan, laba bersih & beban pengeluaran, audit stok bahan menipis, dan kelola seluruh akun pengguna restoran.
+      </p>
+      <div style="font-size: 0.75rem; color: var(--gold-light); margin-bottom: 1rem;">
+        URL: <code>/owner</code> &bull; Login: <code>/owner/login</code>
+      </div>
+      <a href="/owner/login" class="btn-outline-gold" style="justify-content: center; border-color: var(--gold-primary);">
+        Login Owner
+      </a>
+    </div>
+
+  </main>
+
+  <!-- Flow Explanation Section -->
+  <section style="max-width: 1200px; margin: 0 auto 5rem; padding: 0 1.5rem;">
+    <div class="card-maison">
+      <div class="card-header">
+        <h3 class="serif-title" style="font-size: 1.3rem;">Alur Sistem Terintegrasi Satu Database</h3>
+        <span class="badge" style="background: rgba(212, 175, 55, 0.15); color: var(--gold-light);">Live Flow</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-top: 1rem;">
+        
+        <div class="flow-step-box">
+          <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">1️⃣</div>
+          <strong style="color: var(--gold-light);">Customer Memesan</strong>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">Tamu membuka <code>/pesan</code>, memilih menu & mengisi nomor meja tanpa login.</p>
+        </div>
+
+        <div class="flow-step-box">
+          <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">2️⃣</div>
+          <strong style="color: #60a5fa;">Antrean Dapur</strong>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">Pesanan langsung tampil di tiket <code>/dapur</code> untuk dimasak oleh chef.</p>
+        </div>
+
+        <div class="flow-step-box">
+          <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">3️⃣</div>
+          <strong style="color: #34d399;">Kasir & Bayar</strong>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">Kasir di <code>/kasir</code> memproses pembayaran dan mencetak struk belanja.</p>
+        </div>
+
+        <div class="flow-step-box">
+          <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">4️⃣</div>
+          <strong style="color: #f87171;">Potong Stok Resep</strong>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">Sistem otomatis memotong bahan baku Gudang berdasarkan takaran resep porsi.</p>
+        </div>
+
+        <div class="flow-step-box">
+          <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">5️⃣</div>
+          <strong style="color: var(--gold-bright);">Laporan Owner</strong>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">Owner di <code>/owner</code> memantau laba, omzet, pengeluaran & stok bahan menipis.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer style="text-align: center; padding: 2rem; border-top: 1px solid var(--gold-border); font-size: 0.82rem; color: var(--text-dim);">
+    <div style="font-family: var(--font-serif); color: var(--gold-light); font-size: 1rem; margin-bottom: 0.4rem;">MAISON RESTO</div>
+    <div>Sistem Restoran Terintegrasi Haute Gastronomie &copy; 2026. All rights reserved.</div>
+  </footer>
+
+</body>
+</html>

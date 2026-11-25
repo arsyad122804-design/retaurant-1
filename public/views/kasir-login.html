@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login Kasir - Maison Resto</title>
+  <link rel="stylesheet" href="/css/maison-theme.css">
+  <style>
+    .auth-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      background: radial-gradient(circle at center, #171a24 0%, #08090c 100%);
+    }
+    .auth-card {
+      width: 100%;
+      max-width: 440px;
+      background: var(--bg-card);
+      border: 1px solid var(--gold-primary);
+      border-radius: 14px;
+      padding: 2.5rem 2rem;
+      box-shadow: 0 15px 45px rgba(0, 0, 0, 0.8), var(--gold-glow);
+      text-align: center;
+    }
+    .auth-logo {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: var(--gradient-gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #08090c;
+      font-family: var(--font-serif);
+      font-size: 2rem;
+      font-weight: 800;
+      margin: 0 auto 1.25rem;
+      box-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
+    }
+    .auth-portal-tag {
+      display: inline-block;
+      padding: 0.3rem 0.8rem;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid #10b981;
+      color: #34d399;
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      border-radius: 9999px;
+      margin-bottom: 0.75rem;
+    }
+    .demo-box {
+      background: rgba(212, 175, 55, 0.05);
+      border: 1px dashed var(--gold-border);
+      border-radius: 8px;
+      padding: 0.85rem;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 1.5rem;
+      text-align: left;
+    }
+    .demo-btn {
+      background: var(--gold-muted);
+      border: 1px solid var(--gold-border);
+      color: var(--gold-light);
+      padding: 0.3rem 0.6rem;
+      font-size: 0.72rem;
+      border-radius: 4px;
+      cursor: pointer;
+      float: right;
+    }
+    .demo-btn:hover {
+      background: var(--gold-primary);
+      color: #000;
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="auth-logo">K</div>
+      <span class="auth-portal-tag">Portal Transaksi & Kasir</span>
+      <h2 style="font-size: 1.5rem; margin-bottom: 0.25rem;">MAISON RESTO</h2>
+      <p style="color: var(--gold-primary); font-size: 0.82rem; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 1.75rem;">Login Kasir & Pembayaran</p>
+
+      <div id="error-alert" style="display: none; background: var(--accent-red-bg); border: 1px solid var(--accent-red); color: #fca5a5; padding: 0.75rem; border-radius: 6px; font-size: 0.82rem; margin-bottom: 1.25rem; text-align: left;"></div>
+
+      <form id="login-form">
+        <div class="form-group" style="text-align: left;">
+          <label class="form-label">Email Kasir</label>
+          <input type="email" id="email" class="form-input" placeholder="kasir@maisonresto.com" required value="kasir@maisonresto.com">
+        </div>
+        <div class="form-group" style="text-align: left;">
+          <label class="form-label">Password</label>
+          <input type="password" id="password" class="form-input" placeholder="••••••••" required value="kasir123">
+        </div>
+
+        <button type="submit" id="submit-btn" class="btn-gold" style="width: 100%; justify-content: center; margin-top: 0.75rem; padding: 0.85rem;">
+          Masuk ke Halaman Kasir
+        </button>
+      </form>
+
+      <div class="demo-box">
+        <button type="button" class="demo-btn" onclick="fillDemo()">Isi Demo</button>
+        <strong>Kredensial Bawaan Kasir:</strong><br>
+        Email: <code>kasir@maisonresto.com</code><br>
+        Password: <code>kasir123</code>
+      </div>
+
+      <div style="margin-top: 1.5rem; font-size: 0.78rem; color: var(--text-dim);">
+        Bukan Kasir? 
+        <a href="/owner/login" style="color: var(--gold-primary); text-decoration: none;">Login Owner</a> &bull; 
+        <a href="/dapur/login" style="color: var(--gold-primary); text-decoration: none;">Login Dapur</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="/js/common.js"></script>
+  <script>
+    function fillDemo() {
+      document.getElementById('email').value = 'kasir@maisonresto.com';
+      document.getElementById('password').value = 'kasir123';
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const errorParam = urlParams.get('error');
+    if (errorParam) {
+      const alertEl = document.getElementById('error-alert');
+      alertEl.textContent = errorParam;
+      alertEl.style.display = 'block';
+    }
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const submitBtn = document.getElementById('submit-btn');
+      const alertEl = document.getElementById('error-alert');
+
+      alertEl.style.display = 'none';
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Memverifikasi...';
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, portal: 'kasir' })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Login gagal');
+        }
+
+        localStorage.setItem('maison_token', data.token);
+        localStorage.setItem('maison_user', JSON.stringify(data.user));
+        Maison.showToast('Login berhasil! Mengalihkan ke Halaman Kasir...', 'success');
+
+        setTimeout(() => {
+          window.location.href = '/kasir';
+        }, 600);
+      } catch (err) {
+        alertEl.textContent = err.message;
+        alertEl.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Masuk ke Halaman Kasir';
+      }
+    });
+  </script>
+</body>
+</html>

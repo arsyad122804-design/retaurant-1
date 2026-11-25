@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Owner - Maison Resto</title>
+  <link rel="stylesheet" href="/css/maison-theme.css">
+  <style>
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+
+    .kpi-card {
+      background: var(--bg-card);
+      border: 1px solid var(--gold-border);
+      border-radius: 12px;
+      padding: 1.5rem 1.25rem;
+      position: relative;
+      overflow: hidden;
+      transition: var(--transition);
+    }
+
+    .kpi-card:hover {
+      border-color: var(--gold-border-bright);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
+    }
+
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: var(--gradient-gold);
+    }
+
+    .kpi-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .kpi-val {
+      font-family: var(--font-serif);
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: var(--gold-light);
+      line-height: 1.2;
+    }
+
+    .kpi-meta {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      margin-top: 0.4rem;
+    }
+
+    /* Chart Container */
+    .chart-box {
+      background: var(--bg-card);
+      border: 1px solid var(--gold-border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .bar-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 1rem;
+      height: 220px;
+      padding-top: 2rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      position: relative;
+    }
+
+    .bar-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100%;
+      justify-content: flex-end;
+      position: relative;
+    }
+
+    .bar-fill {
+      width: 100%;
+      max-width: 42px;
+      background: var(--gradient-gold);
+      border-radius: 4px 4px 0 0;
+      transition: height 0.5s ease;
+      min-height: 4px;
+      position: relative;
+    }
+
+    .bar-fill:hover {
+      filter: brightness(1.2);
+    }
+
+    .bar-tooltip {
+      position: absolute;
+      top: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #000;
+      border: 1px solid var(--gold-primary);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      white-space: nowrap;
+      color: var(--gold-light);
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+    }
+
+    .bar-col:hover .bar-tooltip {
+      opacity: 1;
+    }
+
+    .bar-label {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <header class="maison-nav">
+    <div class="brand-wrapper">
+      <div class="brand-logo">O</div>
+      <div class="brand-text">
+        <h1 class="serif-title">MAISON RESTO</h1>
+        <p>Dashboard Owner & Eksekutif</p>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <span class="portal-badge" style="background: rgba(212, 175, 55, 0.15); border-color: var(--gold-primary); color: var(--gold-light);">
+        <span>👑</span> Owner: <strong id="owner-name" style="color: #fff; margin-left: 4px;">Monsieur Laurent</strong>
+      </span>
+      <button class="btn-outline-gold btn-sm" onclick="loadDashboardSummary()">
+        <span>🔄 Segarkan</span>
+      </button>
+      <button class="btn-danger btn-sm" onclick="Maison.logout('owner')">
+        Keluar
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <div style="max-width: 1380px; margin: 1.5rem auto 3rem; padding: 0 1.5rem; width: 100%;">
+    
+    <!-- Navigation Tabs -->
+    <div class="tabs-maison">
+      <button class="tab-btn active" id="tab-overview-btn" onclick="switchOwnerTab('overview')">
+        📊 Ringkasan Finansial & Penjualan
+      </button>
+      <button class="tab-btn" id="tab-sales-btn" onclick="switchOwnerTab('sales')">
+        📋 Laporan Detail Penjualan
+      </button>
+      <button class="tab-btn" id="tab-expenses-btn" onclick="switchOwnerTab('expenses')">
+        💸 Laporan Beban & Pengeluaran
+      </button>
+      <button class="tab-btn" id="tab-stocks-btn" onclick="switchOwnerTab('stocks')">
+        📦 Audit Stok & Bahan Menipis
+      </button>
+      <button class="tab-btn" id="tab-users-btn" onclick="switchOwnerTab('users')">
+        👥 Manajemen Akun Pengguna
+      </button>
+    </div>
+
+    <!-- TAB 1: OVERVIEW & FINANCIALS -->
+    <div id="owner-tab-overview">
+      
+      <!-- 4 REVENUE CARDS: HARIAN, MINGGUAN, BULANAN, TAHUNAN -->
+      <h3 class="serif-title" style="font-size: 1.15rem; margin-bottom: 1rem; color: var(--gold-light);">
+        Arus Pendapatan Restoran
+      </h3>
+
+      <div class="kpi-row">
+        <div class="kpi-card">
+          <div class="kpi-label">
+            <span>Pendapatan Hari Ini</span>
+            <span>📅</span>
+          </div>
+          <div class="kpi-val" id="kpi-daily">Rp 0</div>
+          <div class="kpi-meta"><span id="kpi-daily-orders">0</span> transaksi terbayar hari ini</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-label">
+            <span>Pendapatan Mingguan</span>
+            <span>📈</span>
+          </div>
+          <div class="kpi-val" id="kpi-weekly">Rp 0</div>
+          <div class="kpi-meta"><span id="kpi-weekly-orders">0</span> transaksi dalam 7 hari terakhir</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-label">
+            <span>Pendapatan Bulanan</span>
+            <span>🗓</span>
+          </div>
+          <div class="kpi-val" id="kpi-monthly">Rp 0</div>
+          <div class="kpi-meta">Bulan berjalan (<span id="kpi-month-orders">0</span> transaksi)</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-label">
+            <span>Pendapatan Tahunan</span>
+            <span>🏛</span>
+          </div>
+          <div class="kpi-val" id="kpi-yearly">Rp 0</div>
+          <div class="kpi-meta">Tahun 2026 (<span id="kpi-year-orders">0</span> transaksi)</div>
+        </div>
+      </div>
+
+      <!-- PROFIT & EXPENSES SUMMARY -->
+      <div class="stat-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-bottom: 2rem;">
+        
+        <div class="stat-card" style="border-left: 4px solid var(--accent-green);">
+          <div class="stat-title">
+            <span>Keuntungan Bersih (Net Profit)</span>
+            <span style="font-size: 1.2rem;">💎</span>
+          </div>
+          <div class="stat-value" id="financial-net-profit" style="color: #34d399;">Rp 0</div>
+          <div class="stat-subtext">Margin Keuntungan: <strong id="financial-margin" style="color: #fff;">0%</strong></div>
+        </div>
+
+        <div class="stat-card" style="border-left: 4px solid var(--accent-red);">
+          <div class="stat-title">
+            <span>Total Pengeluaran & Beban</span>
+            <span style="font-size: 1.2rem;">💸</span>
+          </div>
+          <div class="stat-value" id="financial-expenses" style="color: #f87171;">Rp 0</div>
+          <div class="stat-subtext">Pembelian bahan baku + operasional resto</div>
+        </div>
+
+        <div class="stat-card" style="border-left: 4px solid var(--gold-primary);">
+          <div class="stat-title">
+            <span>Valuasi Aset Bahan Baku</span>
+            <span style="font-size: 1.2rem;">📦</span>
+          </div>
+          <div class="stat-value" id="stock-valuation">Rp 0</div>
+          <div class="stat-subtext">Total <span id="total-ingredients-count">0</span> komoditas bahan di Gudang</div>
+        </div>
+
+      </div>
+
+      <!-- REVENUE TREND CHART & TOP MENUS -->
+      <div style="display: grid; grid-template-columns: 2fr 1.2fr; gap: 1.5rem; margin-bottom: 2rem;">
+        
+        <!-- Left: 7 Days Trend Chart -->
+        <div class="chart-box">
+          <div class="card-header" style="margin-bottom: 0.5rem;">
+            <h3 class="serif-title" style="margin: 0;">Tren Penjualan 7 Hari Terakhir</h3>
+            <span style="font-size: 0.75rem; color: var(--gold-light);">Grafik Omzet Harian</span>
+          </div>
+          <div class="bar-chart" id="trend-bar-chart">
+            <!-- Dynamic bars -->
+          </div>
+        </div>
+
+        <!-- Right: Top 5 Best Selling Menus -->
+        <div class="chart-box">
+          <div class="card-header" style="margin-bottom: 0.5rem;">
+            <h3 class="serif-title" style="margin: 0;">5 Menu Terlaris (Top Sellers)</h3>
+            <span style="font-size: 0.75rem; color: var(--gold-light);">Berdasarkan Porsi</span>
+          </div>
+          <div id="top-menus-list" style="margin-top: 1rem;">
+            <div style="color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 2rem;">Memuat menu terlaris...</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- LOW STOCK ALERT PREVIEW IN DASHBOARD -->
+      <div class="card-maison">
+        <div class="card-header">
+          <h3 class="serif-title" style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+            <span>⚠️</span> Status Stok Bahan Baku Menipis
+          </h3>
+          <button class="btn-outline-gold btn-sm" onclick="switchOwnerTab('stocks')">
+            Lihat Semua Bahan &rarr;
+          </button>
+        </div>
+
+        <div id="owner-low-stock-preview">
+          <div style="color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 1.5rem;">Memeriksa status bahan baku...</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB 2: DETAILED SALES REPORTS -->
+    <div id="owner-tab-sales" style="display: none;">
+      <div class="card-maison" style="margin-bottom: 1.5rem;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 1rem; align-items: flex-end;">
+          <div>
+            <label class="form-label">Tanggal Mulai</label>
+            <input type="date" id="sales-start-date" class="form-input">
+          </div>
+          <div>
+            <label class="form-label">Tanggal Akhir</label>
+            <input type="date" id="sales-end-date" class="form-input">
+          </div>
+          <div>
+            <button class="btn-gold" style="width: 100%; justify-content: center;" onclick="loadDetailedSalesReport()">
+              Filter Laporan
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-grid" style="margin-bottom: 1.5rem;">
+        <div class="stat-card">
+          <div class="stat-title">Total Pendapatan Terfilter</div>
+          <div class="stat-value" id="sales-rep-total">Rp 0</div>
+          <div class="stat-subtext">Dari seluruh transaksi lunas</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">Jumlah Pesanan</div>
+          <div class="stat-value" id="sales-rep-count">0</div>
+          <div class="stat-subtext">Total transaksi</div>
+        </div>
+      </div>
+
+      <div class="card-maison">
+        <div class="table-responsive">
+          <table class="table-maison">
+            <thead>
+              <tr>
+                <th>Waktu Transaksi</th>
+                <th>Kode Pesanan</th>
+                <th>Tamu</th>
+                <th>Meja</th>
+                <th>Rincian Item</th>
+                <th>Kasir</th>
+                <th>Metode</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody id="sales-report-table-body">
+              <tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">Memuat laporan penjualan...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: DETAILED EXPENSES REPORTS -->
+    <div id="owner-tab-expenses" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <h2 class="serif-title" style="font-size: 1.35rem;">Laporan Beban & Pengeluaran</h2>
+          <p style="color: var(--text-muted); font-size: 0.82rem;">Mencakup pembelian bahan baku otomatis dari Gudang serta pengeluaran operasional.</p>
+        </div>
+        <button class="btn-gold" onclick="openExpenseModal()">
+          <span>+ Catat Pengeluaran Operasional</span>
+        </button>
+      </div>
+
+      <div class="card-maison">
+        <div class="table-responsive">
+          <table class="table-maison">
+            <thead>
+              <tr>
+                <th>Tanggal</th>
+                <th>Kategori Beban</th>
+                <th>Keterangan Pengeluaran</th>
+                <th>Nominal (Rp)</th>
+                <th>Catatan</th>
+              </tr>
+            </thead>
+            <tbody id="expenses-report-table-body">
+              <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">Memuat laporan pengeluaran...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: STOCKS & LOW STOCK AUDIT -->
+    <div id="owner-tab-stocks" style="display: none;">
+      <div style="margin-bottom: 1.25rem;">
+        <h2 class="serif-title" style="font-size: 1.35rem;">Audit Ketersediaan Bahan Baku</h2>
+        <p style="color: var(--text-muted); font-size: 0.82rem;">Pantau stok fisik di dapur dan peringatan bahan yang hampir habis secara real-time.</p>
+      </div>
+
+      <div class="card-maison">
+        <div class="table-responsive">
+          <table class="table-maison">
+            <thead>
+              <tr>
+                <th>Bahan Baku</th>
+                <th>Satuan</th>
+                <th>Stok Saat Ini</th>
+                <th>Batas Minimum</th>
+                <th>Harga Satuan</th>
+                <th>Total Nilai Aset</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="owner-stock-table-body">
+              <tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">Memuat audit stok...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: USER ACCOUNT MANAGEMENT -->
+    <div id="owner-tab-users" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <h2 class="serif-title" style="font-size: 1.35rem;">Manajemen Akun Pengguna</h2>
+          <p style="color: var(--text-muted); font-size: 0.82rem;">Kelola hak akses pengguna untuk portal Owner, Kasir, dan Dapur.</p>
+        </div>
+        <button class="btn-gold" onclick="openUserModal()">
+          <span>+ Tambah Akun Pengguna</span>
+        </button>
+      </div>
+
+      <div class="card-maison">
+        <div class="table-responsive">
+          <table class="table-maison">
+            <thead>
+              <tr>
+                <th>Nama Pengguna</th>
+                <th>Email Login</th>
+                <th>Role Akses Portal</th>
+                <th>No. Telepon</th>
+                <th>Status Akun</th>
+                <th>Dibuat Pada</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="users-table-body">
+              <tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">Memuat daftar pengguna...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MODAL: ADD / EDIT EXPENSE -->
+  <div id="expense-modal" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 class="serif-title" style="margin: 0; font-size: 1.25rem;">Catat Pengeluaran Operasional</h3>
+        <button class="modal-close" onclick="closeExpenseModal()">&times;</button>
+      </div>
+
+      <form id="expense-form" onsubmit="saveExpense(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Kategori Pengeluaran</label>
+            <select id="exp-category" class="form-select" required>
+              <option value="Operasional & Maintenance">Operasional & Maintenance</option>
+              <option value="Gaji & Upah">Gaji & Upah Karyawan</option>
+              <option value="Utilitas & Listrik">Utilitas, Listrik & Gas</option>
+              <option value="Bahan Baku">Bahan Baku Tambahan</option>
+              <option value="Pemasaran & Promosi">Pemasaran & Promosi</option>
+              <option value="Lain-lain">Lain-lain</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Judul / Keperluan</label>
+            <input type="text" id="exp-title" class="form-input" required placeholder="Cth. Pembelian gas elpiji & pembersih dapur">
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label">Nominal (Rp)</label>
+              <input type="number" id="exp-amount" class="form-input" required placeholder="500000">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tanggal</label>
+              <input type="date" id="exp-date" class="form-input" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Catatan Tambahan</label>
+            <textarea id="exp-notes" class="form-textarea" rows="2" placeholder="Nomor nota, vendor, atau keterangan..."></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-outline-gold" onclick="closeExpenseModal()">Batal</button>
+          <button type="submit" class="btn-gold" id="save-exp-btn">Simpan Pengeluaran</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT USER -->
+  <div id="user-modal" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 class="serif-title" id="user-modal-title" style="margin: 0; font-size: 1.25rem;">Tambah Akun Pengguna</h3>
+        <button class="modal-close" onclick="closeUserModal()">&times;</button>
+      </div>
+
+      <form id="user-form" onsubmit="saveUser(event)">
+        <div class="modal-body">
+          <input type="hidden" id="edit-user-id" value="">
+
+          <div class="form-group">
+            <label class="form-label">Nama Lengkap</label>
+            <input type="text" id="u-name" class="form-input" required placeholder="Cth. Marcel Dupont">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Email Login</label>
+            <input type="email" id="u-email" class="form-input" required placeholder="nama@maisonresto.com">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Password <span id="pwd-hint" style="color: var(--text-dim); text-transform: none; font-size: 0.72rem;">(Wajib untuk akun baru)</span></label>
+            <input type="password" id="u-password" class="form-input" placeholder="••••••••">
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label">Role Akses Portal</label>
+              <select id="u-role" class="form-select" required>
+                <option value="kasir">Kasir (/kasir)</option>
+                <option value="dapur">Dapur & Gudang (/dapur)</option>
+                <option value="owner">Owner & Eksekutif (/owner)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Status Akun</label>
+              <select id="u-active" class="form-select" required>
+                <option value="1">Aktif</option>
+                <option value="0">Nonaktif</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Nomor Telepon / WhatsApp</label>
+            <input type="text" id="u-phone" class="form-input" placeholder="08123456789">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-outline-gold" onclick="closeUserModal()">Batal</button>
+          <button type="submit" class="btn-gold" id="save-user-btn">Simpan Pengguna</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="/js/common.js"></script>
+  <script>
+    let currentOwnerTab = 'overview';
+    let currentUser = null;
+    let summaryData = null;
+
+    async function initOwner() {
+      currentUser = await Maison.checkSession(['owner']);
+      if (!currentUser) return;
+
+      document.getElementById('owner-name').textContent = currentUser.name;
+      document.getElementById('exp-date').value = new Date().toISOString().slice(0, 10);
+
+      // Set default date range for reports (past 30 days)
+      const today = new Date();
+      const past30 = new Date();
+      past30.setDate(today.getDate() - 30);
+      document.getElementById('sales-start-date').value = past30.toISOString().slice(0, 10);
+      document.getElementById('sales-end-date').value = today.toISOString().slice(0, 10);
+
+      loadDashboardSummary();
+    }
+
+    function switchOwnerTab(tab) {
+      currentOwnerTab = tab;
+      document.getElementById('tab-overview-btn').classList.toggle('active', tab === 'overview');
+      document.getElementById('tab-sales-btn').classList.toggle('active', tab === 'sales');
+      document.getElementById('tab-expenses-btn').classList.toggle('active', tab === 'expenses');
+      document.getElementById('tab-stocks-btn').classList.toggle('active', tab === 'stocks');
+      document.getElementById('tab-users-btn').classList.toggle('active', tab === 'users');
+
+      document.getElementById('owner-tab-overview').style.display = tab === 'overview' ? 'block' : 'none';
+      document.getElementById('owner-tab-sales').style.display = tab === 'sales' ? 'block' : 'none';
+      document.getElementById('owner-tab-expenses').style.display = tab === 'expenses' ? 'block' : 'none';
+      document.getElementById('owner-tab-stocks').style.display = tab === 'stocks' ? 'block' : 'none';
+      document.getElementById('owner-tab-users').style.display = tab === 'users' ? 'block' : 'none';
+
+      if (tab === 'overview') loadDashboardSummary();
+      if (tab === 'sales') loadDetailedSalesReport();
+      if (tab === 'expenses') loadDetailedExpensesReport();
+      if (tab === 'stocks') loadOwnerStockAudit();
+      if (tab === 'users') loadUserManagement();
+    }
+
+    // --- TAB 1: OVERVIEW ---
+    async function loadDashboardSummary() {
+      try {
+        summaryData = await Maison.fetchApi('/api/owner/summary');
+
+        // Revenue metrics
+        document.getElementById('kpi-daily').textContent = Maison.formatRupiah(summaryData.revenue.daily.total);
+        document.getElementById('kpi-daily-orders').textContent = summaryData.revenue.daily.count;
+
+        document.getElementById('kpi-weekly').textContent = Maison.formatRupiah(summaryData.revenue.weekly.total);
+        document.getElementById('kpi-weekly-orders').textContent = summaryData.revenue.weekly.count;
+
+        document.getElementById('kpi-monthly').textContent = Maison.formatRupiah(summaryData.revenue.monthly.total);
+        document.getElementById('kpi-month-orders').textContent = summaryData.revenue.monthly.count;
+
+        document.getElementById('kpi-yearly').textContent = Maison.formatRupiah(summaryData.revenue.yearly.total);
+        document.getElementById('kpi-year-orders').textContent = summaryData.revenue.yearly.count;
+
+        // Financials
+        document.getElementById('financial-net-profit').textContent = Maison.formatRupiah(summaryData.financial.netProfit);
+        document.getElementById('financial-margin').textContent = `${summaryData.financial.profitMargin}%`;
+        document.getElementById('financial-expenses').textContent = Maison.formatRupiah(summaryData.financial.expenses);
+
+        // Stock valuation
+        document.getElementById('stock-valuation').textContent = Maison.formatRupiah(summaryData.stock.inventory_valuation);
+        document.getElementById('total-ingredients-count').textContent = summaryData.stock.total_ingredients;
+
+        renderDailyTrendChart(summaryData.dailyTrend);
+        renderTopMenus(summaryData.topMenus);
+        renderLowStockPreview(summaryData.stock.lowStockList);
+      } catch (err) {
+        Maison.showToast('Gagal memuat ringkasan eksekutif: ' + err.message, 'error');
+      }
+    }
+
+    function renderDailyTrendChart(dailyTrend) {
+      const container = document.getElementById('trend-bar-chart');
+      if (!dailyTrend || dailyTrend.length === 0) {
+        container.innerHTML = `<div style="text-align: center; color: var(--text-muted); width: 100%;">Belum ada data transaksi.</div>`;
+        return;
+      }
+
+      const maxRev = Math.max(...dailyTrend.map(d => d.revenue), 1000000);
+
+      container.innerHTML = dailyTrend.map(d => {
+        const heightPercent = Math.max(8, (d.revenue / maxRev) * 100);
+        const dayLabel = new Intl.DateTimeFormat('id-ID', { weekday: 'short', day: 'numeric' }).format(new Date(d.date));
+
+        return `
+          <div class="bar-col">
+            <div class="bar-tooltip">
+              <strong>${Maison.formatRupiah(d.revenue)}</strong><br>
+              ${d.orders_count} pesanan
+            </div>
+            <div class="bar-fill" style="height: ${heightPercent}%;"></div>
+            <div class="bar-label">${dayLabel}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderTopMenus(topMenus) {
+      const container = document.getElementById('top-menus-list');
+      if (!topMenus || topMenus.length === 0) {
+        container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 1rem;">Belum ada pesanan lunas.</div>`;
+        return;
+      }
+
+      container.innerHTML = topMenus.map((m, idx) => `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0; border-bottom: 1px solid rgba(255,255,255,0.06);">
+          <div style="display: flex; align-items: center; gap: 0.65rem;">
+            <div style="width: 24px; height: 24px; border-radius: 50%; background: var(--gradient-gold); color: #000; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.75rem;">
+              ${idx + 1}
+            </div>
+            <div>
+              <div style="font-weight: 600; color: #fff; font-size: 0.88rem;">${m.menu_name}</div>
+              <div style="font-size: 0.75rem; color: var(--text-dim);">${m.total_sold} porsi terjual</div>
+            </div>
+          </div>
+          <div style="font-family: var(--font-serif); font-weight: 700; color: var(--gold-light); font-size: 0.95rem;">
+            ${Maison.formatRupiah(m.total_revenue)}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderLowStockPreview(lowStockList) {
+      const container = document.getElementById('owner-low-stock-preview');
+      if (!lowStockList || lowStockList.length === 0) {
+        container.innerHTML = `
+          <div style="text-align: center; color: #34d399; padding: 1.5rem; background: rgba(16, 185, 129, 0.05); border-radius: 8px;">
+            ✓ Seluruh persediaan bahan baku berada dalam kondisi aman di atas batas minimum.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="table-responsive">
+          <table class="table-maison">
+            <thead>
+              <tr>
+                <th>Bahan Baku</th>
+                <th>Sisa Stok Saat Ini</th>
+                <th>Batas Min.</th>
+                <th>Estimasi Biaya Restock</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${lowStockList.map(item => `
+                <tr>
+                  <td><strong style="color: var(--gold-light);">${item.name}</strong></td>
+                  <td style="color: #f87171; font-weight: 700;">${item.current_stock} ${item.unit}</td>
+                  <td>${item.min_stock} ${item.unit}</td>
+                  <td>${Maison.formatRupiah(item.cost_per_unit * item.min_stock)}</td>
+                  <td><span class="badge badge-low-stock">PERLU RESTOCK</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    // --- TAB 2: DETAILED SALES REPORT ---
+    async function loadDetailedSalesReport() {
+      try {
+        const startDate = document.getElementById('sales-start-date').value;
+        const endDate = document.getElementById('sales-end-date').value;
+
+        const res = await Maison.fetchApi(`/api/owner/reports?type=sales&startDate=${startDate}&endDate=${endDate}`);
+        document.getElementById('sales-rep-total').textContent = Maison.formatRupiah(res.totalRevenue);
+        document.getElementById('sales-rep-count').textContent = res.count;
+
+        const tbody = document.getElementById('sales-report-table-body');
+        if (res.orders.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">Tidak ada transaksi pada rentang tanggal ini.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = res.orders.map(ord => `
+          <tr>
+            <td style="font-size: 0.8rem; color: var(--text-dim);">${Maison.formatDateTime(ord.created_at)}</td>
+            <td style="font-family: monospace; font-weight: 700; color: var(--gold-light);">${ord.order_code}</td>
+            <td><strong>${ord.customer_name}</strong></td>
+            <td><span style="color: var(--gold-primary);">${ord.table_number}</span></td>
+            <td style="font-size: 0.82rem; color: var(--text-muted); max-width: 300px;">
+              ${ord.items.map(it => `${it.quantity}x ${it.menu_name}`).join(', ')}
+            </td>
+            <td>${ord.cashier_name || 'Kasir'}</td>
+            <td><span style="text-transform: uppercase; font-size: 0.78rem;">${ord.payment_method || '-'}</span></td>
+            <td style="font-weight: 700; color: #fff;">${Maison.formatRupiah(ord.total_amount)}</td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        Maison.showToast('Gagal memuat laporan penjualan: ' + err.message, 'error');
+      }
+    }
+
+    // --- TAB 3: DETAILED EXPENSES REPORT ---
+    async function loadDetailedExpensesReport() {
+      try {
+        const res = await Maison.fetchApi('/api/owner/reports?type=expenses');
+        const tbody = document.getElementById('expenses-report-table-body');
+        if (res.expenses.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">Belum ada pengeluaran tercatat.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = res.expenses.map(e => `
+          <tr>
+            <td style="font-size: 0.82rem; color: var(--text-dim);">${Maison.formatDate(e.date)}</td>
+            <td><span class="badge" style="background: rgba(255,255,255,0.06); color: var(--gold-light);">${e.category}</span></td>
+            <td><strong>${e.title}</strong></td>
+            <td style="font-weight: 700; color: #f87171;">${Maison.formatRupiah(e.amount)}</td>
+            <td style="font-size: 0.82rem; color: var(--text-muted);">${e.notes || '-'}</td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        Maison.showToast('Gagal memuat pengeluaran: ' + err.message, 'error');
+      }
+    }
+
+    function openExpenseModal() {
+      document.getElementById('exp-title').value = '';
+      document.getElementById('exp-amount').value = '';
+      document.getElementById('exp-notes').value = '';
+      document.getElementById('expense-modal').classList.add('active');
+    }
+
+    function closeExpenseModal() {
+      document.getElementById('expense-modal').classList.remove('active');
+    }
+
+    async function saveExpense(e) {
+      e.preventDefault();
+      const category = document.getElementById('exp-category').value;
+      const title = document.getElementById('exp-title').value.trim();
+      const amount = parseFloat(document.getElementById('exp-amount').value);
+      const date = document.getElementById('exp-date').value;
+      const notes = document.getElementById('exp-notes').value.trim();
+
+      try {
+        await Maison.fetchApi('/api/owner/expenses', {
+          method: 'POST',
+          body: JSON.stringify({ category, title, amount, date, notes })
+        });
+        Maison.showToast('Pengeluaran berhasil dicatat!', 'success');
+        closeExpenseModal();
+        loadDetailedExpensesReport();
+        loadDashboardSummary();
+      } catch (err) {
+        Maison.showToast(err.message, 'error');
+      }
+    }
+
+    // --- TAB 4: STOCKS AUDIT ---
+    async function loadOwnerStockAudit() {
+      try {
+        const res = await Maison.fetchApi('/api/dapur/ingredients');
+        const tbody = document.getElementById('owner-stock-table-body');
+        if (res.ingredients.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">Belum ada bahan baku tercatat.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = res.ingredients.map(ing => {
+          const isLow = ing.is_low_stock === 1;
+          const totalVal = ing.current_stock * ing.cost_per_unit;
+          return `
+            <tr>
+              <td><strong style="color: var(--gold-light);">${ing.name}</strong></td>
+              <td>${ing.unit}</td>
+              <td style="font-weight: 700; color: ${isLow ? '#f87171' : '#fff'};">${ing.current_stock} ${ing.unit}</td>
+              <td>${ing.min_stock} ${ing.unit}</td>
+              <td>${Maison.formatRupiah(ing.cost_per_unit)}</td>
+              <td style="font-weight: 700; color: var(--gold-primary);">${Maison.formatRupiah(totalVal)}</td>
+              <td>
+                <span class="badge ${isLow ? 'badge-low-stock' : 'badge-completed'}">
+                  ${isLow ? 'MENIPIS' : 'AMAN'}
+                </span>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        Maison.showToast('Gagal memuat audit stok: ' + err.message, 'error');
+      }
+    }
+
+    // --- TAB 5: USER MANAGEMENT ---
+    async function loadUserManagement() {
+      try {
+        const res = await Maison.fetchApi('/api/owner/users');
+        const tbody = document.getElementById('users-table-body');
+        if (res.users.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">Belum ada user.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = res.users.map(u => {
+          let roleBadge = '';
+          if (u.role === 'owner') roleBadge = `<span class="badge" style="border: 1px solid var(--gold-primary); color: var(--gold-light);">👑 OWNER</span>`;
+          else if (u.role === 'kasir') roleBadge = `<span class="badge" style="border: 1px solid #10b981; color: #34d399;">💵 KASIR</span>`;
+          else if (u.role === 'dapur') roleBadge = `<span class="badge" style="border: 1px solid #3b82f6; color: #60a5fa;">👨‍🍳 DAPUR</span>`;
+
+          return `
+            <tr>
+              <td><strong style="color: #fff;">${u.name}</strong></td>
+              <td style="font-family: monospace; color: var(--gold-light);">${u.email}</td>
+              <td>${roleBadge}</td>
+              <td>${u.phone || '-'}</td>
+              <td>
+                <span class="badge ${u.is_active ? 'badge-completed' : 'badge-unpaid'}">
+                  ${u.is_active ? 'AKTIF' : 'NONAKTIF'}
+                </span>
+              </td>
+              <td style="font-size: 0.8rem; color: var(--text-dim);">${Maison.formatDate(u.created_at)}</td>
+              <td>
+                <div style="display: flex; gap: 0.35rem;">
+                  <button class="btn-outline-gold btn-sm" onclick='openEditUserModal(${JSON.stringify(u)})'>Edit</button>
+                  ${u.id !== currentUser.id ? `
+                    <button class="btn-danger btn-sm" onclick="deleteUser(${u.id})">Hapus</button>
+                  ` : ''}
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        Maison.showToast('Gagal memuat akun: ' + err.message, 'error');
+      }
+    }
+
+    function openUserModal() {
+      document.getElementById('user-modal-title').textContent = 'Tambah Akun Pengguna';
+      document.getElementById('edit-user-id').value = '';
+      document.getElementById('u-name').value = '';
+      document.getElementById('u-email').value = '';
+      document.getElementById('u-password').value = '';
+      document.getElementById('u-password').required = true;
+      document.getElementById('pwd-hint').textContent = '(Wajib untuk akun baru)';
+      document.getElementById('u-role').value = 'kasir';
+      document.getElementById('u-active').value = '1';
+      document.getElementById('u-phone').value = '';
+      document.getElementById('user-modal').classList.add('active');
+    }
+
+    function openEditUserModal(u) {
+      document.getElementById('user-modal-title').textContent = 'Edit Akun Pengguna';
+      document.getElementById('edit-user-id').value = u.id;
+      document.getElementById('u-name').value = u.name;
+      document.getElementById('u-email').value = u.email;
+      document.getElementById('u-password').value = '';
+      document.getElementById('u-password').required = false;
+      document.getElementById('pwd-hint').textContent = '(Kosongkan jika tidak ingin mengubah password)';
+      document.getElementById('u-role').value = u.role;
+      document.getElementById('u-active').value = u.is_active ? '1' : '0';
+      document.getElementById('u-phone').value = u.phone || '';
+      document.getElementById('user-modal').classList.add('active');
+    }
+
+    function closeUserModal() {
+      document.getElementById('user-modal').classList.remove('active');
+    }
+
+    async function saveUser(e) {
+      e.preventDefault();
+      const id = document.getElementById('edit-user-id').value;
+      const name = document.getElementById('u-name').value.trim();
+      const email = document.getElementById('u-email').value.trim();
+      const password = document.getElementById('u-password').value;
+      const role = document.getElementById('u-role').value;
+      const is_active = parseInt(document.getElementById('u-active').value, 10);
+      const phone = document.getElementById('u-phone').value.trim();
+
+      const payload = { name, email, password, role, is_active, phone };
+
+      try {
+        if (id) {
+          await Maison.fetchApi(`/api/owner/users/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+          });
+          Maison.showToast('Data akun berhasil diperbarui!', 'success');
+        } else {
+          await Maison.fetchApi('/api/owner/users', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+          Maison.showToast('Akun baru berhasil didaftarkan!', 'success');
+        }
+        closeUserModal();
+        loadUserManagement();
+      } catch (err) {
+        Maison.showToast(err.message, 'error');
+      }
+    }
+
+    async function deleteUser(id) {
+      if (!confirm('Apakah Anda yakin ingin menghapus akun pengguna ini?')) return;
+      try {
+        await Maison.fetchApi(`/api/owner/users/${id}`, { method: 'DELETE' });
+        Maison.showToast('Akun berhasil dihapus', 'success');
+        loadUserManagement();
+      } catch (err) {
+        Maison.showToast(err.message, 'error');
+      }
+    }
+
+    // Initialize
+    initOwner();
+  </script>
+</body>
+</html>

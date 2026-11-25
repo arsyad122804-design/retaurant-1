@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Dapur & Gudang - Maison Resto</title>
+  <link rel="stylesheet" href="/css/maison-theme.css">
+  <style>
+    .kitchen-queue-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .ticket-card {
+      background: var(--bg-card);
+      border: 1px solid var(--gold-border);
+      border-radius: 10px;
+      padding: 1.25rem;
+      position: relative;
+      transition: var(--transition);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .ticket-card.ticket-pending {
+      border-top: 4px solid var(--accent-amber);
+    }
+
+    .ticket-card.ticket-cooking {
+      border-top: 4px solid var(--accent-blue);
+      box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+    }
+
+    .ticket-card.ticket-ready {
+      border-top: 4px solid #a855f7;
+    }
+
+    .ticket-item-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.4rem 0;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+      font-size: 0.9rem;
+    }
+
+    .ticket-item-row:last-child {
+      border-bottom: none;
+    }
+
+    .stock-progress-bg {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 9999px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .stock-progress-fill {
+      height: 100%;
+      border-radius: 9999px;
+      transition: width 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <header class="maison-nav">
+    <div class="brand-wrapper">
+      <div class="brand-logo">D</div>
+      <div class="brand-text">
+        <h1 class="serif-title">MAISON RESTO</h1>
+        <p>Portal Dapur & Gudang</p>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <span class="portal-badge" style="background: rgba(59, 130, 246, 0.15); border-color: #3b82f6; color: #60a5fa;">
+        <span>👨‍🍳</span> Dapur: <strong id="kitchen-user-name" style="color: #fff; margin-left: 4px;">Chef Pierre</strong>
+      </span>
+      <button class="btn-outline-gold btn-sm" onclick="refreshCurrentTab()">
+        <span>🔄 Segarkan</span>
+      </button>
+      <button class="btn-danger btn-sm" onclick="Maison.logout('dapur')">
+        Keluar
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <div style="max-width: 1350px; margin: 1.5rem auto 3rem; padding: 0 1.5rem; width: 100%;">
+    
+    <!-- Low Stock Alert Banner (if any) -->
+    <div id="low-stock-banner" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid var(--accent-red); border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <span style="font-size: 1.5rem;">⚠️</span>
+        <div>
+          <strong style="color: #fca5a5; font-size: 0.95rem;">Peringatan Stok Menipis!</strong>
+          <div id="low-stock-banner-text" style="color: #cbd5e1; font-size: 0.82rem; margin-top: 2px;">Ada bahan baku yang berada di bawah batas minimum.</div>
+        </div>
+      </div>
+      <button class="btn-gold btn-sm" onclick="switchDapurTab('inventory')">
+        Lihat Gudang & Restock
+      </button>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs-maison">
+      <button class="tab-btn active" id="tab-queue-btn" onclick="switchDapurTab('queue')">
+        🍳 Antrean Masak (<span id="queue-count-badge">0</span>)
+      </button>
+      <button class="tab-btn" id="tab-menu-btn" onclick="switchDapurTab('menu')">
+        📜 Kelola Menu & Resep
+      </button>
+      <button class="tab-btn" id="tab-inventory-btn" onclick="switchDapurTab('inventory')">
+        📦 Stok Bahan Baku & Restock (<span id="low-stock-count-badge" style="color: #f87171;">0</span>)
+      </button>
+      <button class="tab-btn" id="tab-logs-btn" onclick="switchDapurTab('logs')">
+        📊 Mutasi Pemotongan Resep
+      </button>
+    </div>
+
+    <!-- TAB 1: KITCHEN ORDER QUEUE -->
+    <div id="dapur-tab-queue">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <h2 class="serif-title" style="font-size: 1.35rem;">Tiket Antrean Masak</h2>
+          <p style="color: var(--text-muted); font-size: 0.82rem;">Pesanan yang dikirim tamu via /pesan otomatis masuk ke antrean ini.</p>
+        </div>
+        <div>
+          <span style="font-size: 0.8rem; color: var(--text-dim);">Pembaruan otomatis tiap 10 detik aktif</span>
+        </div>
+      </div>
+
+      <div id="kitchen-queue-container" class="kitchen-queue-grid">
+        <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 1rem; color: var(--text-muted);">
+          Memuat antrean dapur...
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: MENU & RECIPE MANAGEMENT -->
+    <div id="dapur-tab-menu" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <h2 class="serif-title" style="font-size: 1.35rem;">Daftar Makanan & Minuman Restoran</h2>
+          <p style="color: var(--text-muted); font-size: 0.82rem;">Setiap menu dapat diatur resep bahan bakunya untuk auto-deduction saat dipesan.</p>
+        </div>
+        <button class="btn-gold" onclick="openMenuModal()">
+          <span>+ Tambah Menu & Resep Baru</span>
+        </button>
+      </div>
+
+      <div class="card-maison">
+        <div class="table-responsive">
+          <table class="table-maison">
+            <thead>
+              <tr>
+                <th>Menu</th>
+                <th>Kategori</th>
+                <th>Harga</th>
+                <th>Komposisi Resep Bahan Baku</th>
+                <th>Status</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="menu-table-body">
+              <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">Memuat daftar menu...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: INVENTORY & STOCK-IN -->
+    <div id="dapur-tab-inventory" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <h2 class="serif-title" style="font-size: 1.35rem;">Gudang Bahan Baku & Restock</h2>
+          <p style="color: var(--text-muted); font-size: 0.82rem;">Pantau ketersediaan stok fisik dan catat bahan masuk dari supplier.</p>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+          <button class="btn-outline-gold" onclick="openIngredientModal()">
+            <span>+ Bahan Baku Baru</span>
+          </button>
+          <button class="btn-gold" onclick="openStockInModal()">
+            <span>📥 Catat Bahan Masuk</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="card-maison">
+        <div class="table-responsive">
+          <table class="table-maison">
+            <thead>
+              <tr>
+                <th>Bahan Baku</th>
+                <th>Satuan</th>
+                <th>Stok Saat Ini</th>
+                <th>Batas Min.</th>
+                <th>Harga Beli / Unit</th>
+                <th>Status Ketersediaan</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="inventory-table-body">
+              <tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">Memuat daftar bahan baku...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: RECIPE DEDUCTION LOGS -->
+    <div id="dapur-tab-logs" style="display: none;">
+      <div style="margin-bottom: 1.25rem;">
+        <h2 class="serif-title" style="font-size: 1.35rem;">Riwayat Mutasi Pemotongan Stok Otomatis</h2>
+        <p style="color: var(--text-muted); font-size: 0.82rem;">Catatan audit setiap kali bahan baku berkurang otomatis karena pesanan atau bertambah karena restock.</p>
+      </div>
+
+      <div class="card-maison">
+        <div class="table-responsive">
+          <table class="table-maison">
+            <thead>
+              <tr>
+                <th>Waktu</th>
+                <th>Bahan Baku</th>
+                <th>Perubahan Stok</th>
+                <th>Sisa Stok</th>
+                <th>Alasan / Keterangan</th>
+              </tr>
+            </thead>
+            <tbody id="stock-logs-table-body">
+              <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">Memuat riwayat mutasi...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MODAL: ADD / EDIT MENU & RECIPES -->
+  <div id="menu-modal" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 680px;">
+      <div class="modal-header">
+        <h3 class="serif-title" id="menu-modal-title" style="margin: 0; font-size: 1.25rem;">Tambah Menu & Resep</h3>
+        <button class="modal-close" onclick="closeMenuModal()">&times;</button>
+      </div>
+
+      <form id="menu-form" onsubmit="saveMenu(event)">
+        <div class="modal-body">
+          <input type="hidden" id="edit-menu-id" value="">
+
+          <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label">Nama Menu</label>
+              <input type="text" id="m-name" class="form-input" required placeholder="Cth. Pan-Seared Foie Gras">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Kategori</label>
+              <select id="m-category" class="form-select" required>
+                <option value="Appetizer">Appetizer</option>
+                <option value="Main Course" selected>Main Course</option>
+                <option value="Pasta & Risotto">Pasta & Risotto</option>
+                <option value="Dessert">Dessert</option>
+                <option value="Beverage">Beverage</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label">Harga Jual (Rp)</label>
+              <input type="number" id="m-price" class="form-input" required placeholder="250000">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Status Ketersediaan</label>
+              <select id="m-available" class="form-select">
+                <option value="1">Tersedia (Ready to Order)</option>
+                <option value="0">Habis / Tidak Tersedia</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">URL Foto Makanan</label>
+            <input type="url" id="m-image" class="form-input" placeholder="https://images.unsplash.com/...">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Deskripsi Menu</label>
+            <textarea id="m-desc" class="form-textarea" rows="2" placeholder="Komposisi rasa, garnish, dan penyajian..."></textarea>
+          </div>
+
+          <!-- RECIPE BUILDER -->
+          <div style="border-top: 1px dashed var(--gold-border); padding-top: 1rem; margin-top: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+              <div>
+                <label class="form-label" style="margin: 0;">Pengaturan Resep Bahan Baku (Per 1 Porsi)</label>
+                <p style="font-size: 0.75rem; color: var(--text-dim); margin: 0;">Stok bahan baku ini otomatis dipotong saat pesanan diproses.</p>
+              </div>
+              <button type="button" class="btn-outline-gold btn-sm" onclick="addRecipeRow()">+ Tambah Bahan Resep</button>
+            </div>
+
+            <div id="recipe-rows-container">
+              <!-- Dynamically populated rows -->
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-outline-gold" onclick="closeMenuModal()">Batal</button>
+          <button type="submit" class="btn-gold" id="save-menu-btn">Simpan Menu & Resep</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT INGREDIENT -->
+  <div id="ingredient-modal" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 class="serif-title" id="ing-modal-title" style="margin: 0; font-size: 1.25rem;">Tambah Bahan Baku Baru</h3>
+        <button class="modal-close" onclick="closeIngredientModal()">&times;</button>
+      </div>
+
+      <form id="ingredient-form" onsubmit="saveIngredient(event)">
+        <div class="modal-body">
+          <input type="hidden" id="edit-ing-id" value="">
+
+          <div class="form-group">
+            <label class="form-label">Nama Bahan Baku</label>
+            <input type="text" id="ing-name" class="form-input" required placeholder="Cth. Daging Sapi Tenderloin">
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label">Satuan Ukur</label>
+              <select id="ing-unit" class="form-select" required>
+                <option value="kg">kg (Kilogram)</option>
+                <option value="gram">gram</option>
+                <option value="liter">liter</option>
+                <option value="ml">ml (Mililiter)</option>
+                <option value="ekor">ekor</option>
+                <option value="butir">butir</option>
+                <option value="kaleng">kaleng</option>
+                <option value="pcs">pcs</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Batas Stok Minimum</label>
+              <input type="number" step="0.01" id="ing-min-stock" class="form-input" required placeholder="2.5">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label">Stok Awal</label>
+              <input type="number" step="0.01" id="ing-current-stock" class="form-input" required placeholder="10">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Biaya per Satuan (Rp)</label>
+              <input type="number" id="ing-cost" class="form-input" required placeholder="150000">
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-outline-gold" onclick="closeIngredientModal()">Batal</button>
+          <button type="submit" class="btn-gold" id="save-ing-btn">Simpan Bahan Baku</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: STOCK IN / RESTOCK -->
+  <div id="stock-in-modal" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 class="serif-title" style="margin: 0; font-size: 1.25rem;">Catat Bahan Masuk (Restock)</h3>
+        <button class="modal-close" onclick="closeStockInModal()">&times;</button>
+      </div>
+
+      <form id="stock-in-form" onsubmit="saveStockIn(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Pilih Bahan Baku</label>
+            <select id="sin-ingredient" class="form-select" required onchange="updateStockInUnit()">
+              <!-- populated -->
+            </select>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label">Jumlah Masuk (<span id="sin-unit-label">kg</span>)</label>
+              <input type="number" step="0.01" id="sin-quantity" class="form-input" required placeholder="0" oninput="calculateStockInTotal()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Harga Satuan (Rp)</label>
+              <input type="number" id="sin-unit-cost" class="form-input" required placeholder="0" oninput="calculateStockInTotal()">
+            </div>
+          </div>
+
+          <div style="background: rgba(212, 175, 55, 0.08); border: 1px solid var(--gold-border); border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 0.85rem; color: var(--text-muted);">Total Biaya Masuk:</span>
+            <strong id="sin-total-cost" style="font-family: var(--font-serif); font-size: 1.15rem; color: var(--gold-light);">Rp 0</strong>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Nama Supplier / Pemasok</label>
+            <input type="text" id="sin-supplier" class="form-input" placeholder="Cth. PT Meat Import Nusantara">
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label">Tanggal Masuk</label>
+              <input type="date" id="sin-date" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">No. Surat Jalan / Nota</label>
+              <input type="text" id="sin-notes" class="form-input" placeholder="Cth. SJ-99120">
+            </div>
+          </div>
+
+          <div style="font-size: 0.75rem; color: var(--gold-light); margin-top: 0.5rem;">
+            ℹ <em>Restock ini otomatis menambah stok bahan dan dicatat sebagai pengeluaran restoran di Dashboard Owner.</em>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-outline-gold" onclick="closeStockInModal()">Batal</button>
+          <button type="submit" class="btn-gold" id="save-sin-btn">Konfirmasi Bahan Masuk</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="/js/common.js"></script>
+  <script>
+    let currentTab = 'queue';
+    let kitchenOrders = [];
+    let menuList = [];
+    let ingredientList = [];
+    let currentUser = null;
+
+    async function initDapur() {
+      currentUser = await Maison.checkSession(['dapur', 'owner']);
+      if (!currentUser) return;
+
+      document.getElementById('kitchen-user-name').textContent = currentUser.name;
+      document.getElementById('sin-date').value = new Date().toISOString().slice(0, 10);
+
+      loadKitchenQueue();
+      loadInventory();
+      checkLowStockAlerts();
+
+      // Auto poll queue every 10 seconds
+      setInterval(() => {
+        if (currentTab === 'queue') loadKitchenQueue(true);
+      }, 10000);
+    }
+
+    function switchDapurTab(tab) {
+      currentTab = tab;
+      document.getElementById('tab-queue-btn').classList.toggle('active', tab === 'queue');
+      document.getElementById('tab-menu-btn').classList.toggle('active', tab === 'menu');
+      document.getElementById('tab-inventory-btn').classList.toggle('active', tab === 'inventory');
+      document.getElementById('tab-logs-btn').classList.toggle('active', tab === 'logs');
+
+      document.getElementById('dapur-tab-queue').style.display = tab === 'queue' ? 'block' : 'none';
+      document.getElementById('dapur-tab-menu').style.display = tab === 'menu' ? 'block' : 'none';
+      document.getElementById('dapur-tab-inventory').style.display = tab === 'inventory' ? 'block' : 'none';
+      document.getElementById('dapur-tab-logs').style.display = tab === 'logs' ? 'block' : 'none';
+
+      if (tab === 'queue') loadKitchenQueue();
+      if (tab === 'menu') loadMenuManagement();
+      if (tab === 'inventory') loadInventory();
+      if (tab === 'logs') loadStockLogs();
+    }
+
+    function refreshCurrentTab() {
+      if (currentTab === 'queue') loadKitchenQueue();
+      if (currentTab === 'menu') loadMenuManagement();
+      if (currentTab === 'inventory') loadInventory();
+      if (currentTab === 'logs') loadStockLogs();
+      checkLowStockAlerts();
+      Maison.showToast('Data berhasil diperbarui', 'info');
+    }
+
+    // --- TAB 1: KITCHEN QUEUE ---
+    async function loadKitchenQueue(isAuto = false) {
+      try {
+        const res = await Maison.fetchApi('/api/dapur/orders');
+        if (isAuto && res.orders.length > kitchenOrders.length) {
+          Maison.playChime();
+          Maison.showToast('Pesanan baru masuk ke antrean Dapur!', 'warning');
+        }
+        kitchenOrders = res.orders;
+        document.getElementById('queue-count-badge').textContent = kitchenOrders.length;
+        renderKitchenQueue();
+      } catch (err) {
+        if (!isAuto) Maison.showToast('Gagal memuat antrean dapur: ' + err.message, 'error');
+      }
+    }
+
+    function renderKitchenQueue() {
+      const container = document.getElementById('kitchen-queue-container');
+      if (kitchenOrders.length === 0) {
+        container.innerHTML = `
+          <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 1rem; color: var(--text-muted); background: var(--bg-card); border-radius: 12px; border: 1px dashed var(--gold-border);">
+            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">👨‍🍳</div>
+            <h3 style="color: var(--gold-light); margin-bottom: 0.25rem;">Semua Hidangan Selesai Dimasak!</h3>
+            <p style="font-size: 0.85rem;">Antrean dapur kosong saat ini.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = kitchenOrders.map(ord => {
+        let cardClass = 'ticket-pending';
+        let actionBtn = '';
+
+        if (ord.status === 'pending') {
+          cardClass = 'ticket-pending';
+          actionBtn = `
+            <button class="btn-gold btn-sm" style="width: 100%; justify-content: center;" onclick="updateKitchenStatus(${ord.id}, 'cooking')">
+              🔥 Mulai Memasak
+            </button>
+          `;
+        } else if (ord.status === 'cooking') {
+          cardClass = 'ticket-cooking';
+          actionBtn = `
+            <button class="btn-gold btn-sm" style="width: 100%; justify-content: center; background: #a855f7; color: #fff;" onclick="updateKitchenStatus(${ord.id}, 'ready')">
+              🛎 Siap Disajikan
+            </button>
+          `;
+        } else if (ord.status === 'ready') {
+          cardClass = 'ticket-ready';
+          actionBtn = `
+            <button class="btn-outline-gold btn-sm" style="width: 100%; justify-content: center;" onclick="updateKitchenStatus(${ord.id}, 'completed')">
+              ✓ Selesai / Terhidang
+            </button>
+          `;
+        }
+
+        return `
+          <div class="ticket-card ${cardClass}">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+              <div>
+                <span style="font-family: monospace; font-weight: 700; color: var(--gold-light);">${ord.order_code}</span>
+                <div style="font-size: 0.75rem; color: var(--text-dim);">${Maison.formatTime(ord.created_at)}</div>
+              </div>
+              <span class="badge badge-${ord.status}">${ord.status.toUpperCase()}</span>
+            </div>
+
+            <div style="background: rgba(10, 12, 16, 0.7); border-radius: 6px; padding: 0.5rem 0.75rem; margin-bottom: 0.75rem;">
+              <div style="font-weight: 700; color: #fff; font-size: 0.95rem;">${ord.table_number}</div>
+              <div style="font-size: 0.8rem; color: var(--gold-light);">Tamu: ${ord.customer_name}</div>
+              ${ord.notes ? `<div style="font-size: 0.75rem; color: var(--accent-amber); margin-top: 3px;">📝 ${ord.notes}</div>` : ''}
+            </div>
+
+            <div style="flex: 1; margin-bottom: 1rem;">
+              ${ord.items.map(it => `
+                <div class="ticket-item-row">
+                  <span style="font-weight: 600; color: #fff;">${it.quantity}x ${it.menu_name}</span>
+                  <span style="font-size: 0.75rem; color: var(--text-dim);">${it.category || ''}</span>
+                </div>
+              `).join('')}
+            </div>
+
+            <div style="margin-top: auto;">
+              ${actionBtn}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function updateKitchenStatus(orderId, status) {
+      try {
+        const res = await Maison.fetchApi(`/api/dapur/order/${orderId}/status`, {
+          method: 'POST',
+          body: JSON.stringify({ status })
+        });
+        Maison.showToast(res.message || `Status diperbarui ke ${status}`, 'success');
+        loadKitchenQueue();
+        loadInventory();
+        checkLowStockAlerts();
+      } catch (err) {
+        Maison.showToast('Gagal mengubah status: ' + err.message, 'error');
+      }
+    }
+
+    // --- TAB 2: MENU & RECIPE MANAGEMENT ---
+    async function loadMenuManagement() {
+      try {
+        const res = await Maison.fetchApi('/api/dapur/menu');
+        menuList = res.items;
+
+        const tbody = document.getElementById('menu-table-body');
+        if (menuList.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">Belum ada menu terdaftar.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = menuList.map(item => `
+          <tr>
+            <td>
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <img src="${item.image_url || 'https://images.unsplash.com/photo-1544025162-d76694265947?w=100'}" style="width: 44px; height: 44px; border-radius: 6px; object-fit: cover; border: 1px solid var(--gold-border);">
+                <div>
+                  <div style="font-weight: 600; color: var(--gold-light);">${item.name}</div>
+                  <div style="font-size: 0.75rem; color: var(--text-dim); max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.description || '-'}</div>
+                </div>
+              </div>
+            </td>
+            <td><span class="badge" style="background: rgba(255,255,255,0.06); color: var(--gold-light);">${item.category}</span></td>
+            <td style="font-family: var(--font-serif); font-weight: 700; color: #fff;">${Maison.formatRupiah(item.price)}</td>
+            <td>
+              <div style="font-size: 0.8rem; color: var(--text-muted);">
+                ${item.recipes && item.recipes.length > 0 ? 
+                  item.recipes.map(r => `<div>&bull; ${r.quantity_required} ${r.ingredient_unit} <strong>${r.ingredient_name}</strong></div>`).join('')
+                  : '<span style="color: var(--text-dim); font-style: italic;">Belum ada resep</span>'}
+              </div>
+            </td>
+            <td>
+              <span class="badge ${item.is_available ? 'badge-completed' : 'badge-unpaid'}">
+                ${item.is_available ? 'Tersedia' : 'Habis'}
+              </span>
+            </td>
+            <td>
+              <div style="display: flex; gap: 0.35rem;">
+                <button class="btn-outline-gold btn-sm" onclick='openEditMenuModal(${JSON.stringify(item)})'>Edit</button>
+                <button class="btn-danger btn-sm" onclick="deleteMenu(${item.id})">Hapus</button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        Maison.showToast('Gagal memuat menu: ' + err.message, 'error');
+      }
+    }
+
+    function openMenuModal() {
+      document.getElementById('menu-modal-title').textContent = 'Tambah Menu & Resep Baru';
+      document.getElementById('edit-menu-id').value = '';
+      document.getElementById('m-name').value = '';
+      document.getElementById('m-category').value = 'Main Course';
+      document.getElementById('m-price').value = '';
+      document.getElementById('m-available').value = '1';
+      document.getElementById('m-image').value = '';
+      document.getElementById('m-desc').value = '';
+      document.getElementById('recipe-rows-container').innerHTML = '';
+      addRecipeRow(); // Add 1 blank recipe row by default
+      document.getElementById('menu-modal').classList.add('active');
+    }
+
+    function openEditMenuModal(item) {
+      document.getElementById('menu-modal-title').textContent = 'Edit Menu & Resep';
+      document.getElementById('edit-menu-id').value = item.id;
+      document.getElementById('m-name').value = item.name;
+      document.getElementById('m-category').value = item.category;
+      document.getElementById('m-price').value = item.price;
+      document.getElementById('m-available').value = item.is_available ? '1' : '0';
+      document.getElementById('m-image').value = item.image_url || '';
+      document.getElementById('m-desc').value = item.description || '';
+
+      const container = document.getElementById('recipe-rows-container');
+      container.innerHTML = '';
+      if (item.recipes && item.recipes.length > 0) {
+        item.recipes.forEach(r => {
+          addRecipeRow(r.ingredient_id, r.quantity_required);
+        });
+      } else {
+        addRecipeRow();
+      }
+
+      document.getElementById('menu-modal').classList.add('active');
+    }
+
+    function closeMenuModal() {
+      document.getElementById('menu-modal').classList.remove('active');
+    }
+
+    function addRecipeRow(selectedIngId = '', qty = '') {
+      const container = document.getElementById('recipe-rows-container');
+      const row = document.createElement('div');
+      row.className = 'recipe-input-row';
+      row.style.cssText = 'display: grid; grid-template-columns: 2fr 1fr auto; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;';
+
+      const options = ingredientList.map(ing => `
+        <option value="${ing.id}" ${ing.id == selectedIngId ? 'selected' : ''}>
+          ${ing.name} (${ing.unit})
+        </option>
+      `).join('');
+
+      row.innerHTML = `
+        <select class="form-select recipe-ing-select" required>
+          <option value="">-- Pilih Bahan Baku --</option>
+          ${options}
+        </select>
+        <input type="number" step="0.001" class="form-input recipe-qty-input" required placeholder="Jumlah/porsi" value="${qty}">
+        <button type="button" class="btn-danger btn-sm" onclick="this.parentElement.remove()" style="padding: 0.45rem 0.65rem;">&times;</button>
+      `;
+
+      container.appendChild(row);
+    }
+
+    async function saveMenu(e) {
+      e.preventDefault();
+      const menuId = document.getElementById('edit-menu-id').value;
+      const name = document.getElementById('m-name').value.trim();
+      const category = document.getElementById('m-category').value;
+      const price = parseFloat(document.getElementById('m-price').value);
+      const is_available = document.getElementById('m-available').value === '1';
+      const image_url = document.getElementById('m-image').value.trim();
+      const description = document.getElementById('m-desc').value.trim();
+
+      // Collect recipes
+      const recipeRows = document.querySelectorAll('#recipe-rows-container .recipe-input-row');
+      const recipes = [];
+      recipeRows.forEach(row => {
+        const ingId = row.querySelector('.recipe-ing-select').value;
+        const qty = parseFloat(row.querySelector('.recipe-qty-input').value);
+        if (ingId && qty > 0) {
+          recipes.push({ ingredient_id: parseInt(ingId, 10), quantity_required: qty });
+        }
+      });
+
+      const payload = { name, category, price, is_available, image_url, description, recipes };
+
+      try {
+        if (menuId) {
+          await Maison.fetchApi(`/api/dapur/menu/${menuId}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+          });
+          Maison.showToast('Menu dan resep berhasil diperbarui!', 'success');
+        } else {
+          await Maison.fetchApi('/api/dapur/menu', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+          Maison.showToast('Menu dan resep baru berhasil disimpan!', 'success');
+        }
+        closeMenuModal();
+        loadMenuManagement();
+      } catch (err) {
+        Maison.showToast('Gagal menyimpan menu: ' + err.message, 'error');
+      }
+    }
+
+    async function deleteMenu(id) {
+      if (!confirm('Apakah Anda yakin ingin menghapus menu ini beserta resepnya?')) return;
+      try {
+        await Maison.fetchApi(`/api/dapur/menu/${id}`, { method: 'DELETE' });
+        Maison.showToast('Menu berhasil dihapus', 'success');
+        loadMenuManagement();
+      } catch (err) {
+        Maison.showToast('Gagal menghapus menu: ' + err.message, 'error');
+      }
+    }
+
+    // --- TAB 3: INVENTORY & STOCK-IN ---
+    async function loadInventory() {
+      try {
+        const res = await Maison.fetchApi('/api/dapur/ingredients');
+        ingredientList = res.ingredients;
+
+        // Populate stock-in select box
+        const sinSelect = document.getElementById('sin-ingredient');
+        sinSelect.innerHTML = `<option value="">-- Pilih Bahan Baku --</option>` + ingredientList.map(ing => `
+          <option value="${ing.id}" data-unit="${ing.unit}" data-cost="${ing.cost_per_unit}">
+            ${ing.name} (Stok: ${ing.current_stock} ${ing.unit})
+          </option>
+        `).join('');
+
+        const tbody = document.getElementById('inventory-table-body');
+        if (ingredientList.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">Belum ada bahan baku tercatat.</td></tr>`;
+          return;
+        }
+
+        let lowCount = 0;
+        tbody.innerHTML = ingredientList.map(ing => {
+          const isLow = ing.is_low_stock === 1;
+          if (isLow) lowCount++;
+          const stockRatio = ing.min_stock > 0 ? (ing.current_stock / (ing.min_stock * 2)) * 100 : 100;
+          const cappedRatio = Math.min(100, Math.max(5, stockRatio));
+          const fillColor = isLow ? '#ef4444' : '#10b981';
+
+          return `
+            <tr>
+              <td><strong style="color: var(--gold-light);">${ing.name}</strong></td>
+              <td><span style="color: var(--text-dim);">${ing.unit}</span></td>
+              <td>
+                <div style="font-weight: 700; color: ${isLow ? '#f87171' : '#fff'}; font-size: 1rem;">
+                  ${ing.current_stock.toLocaleString('id-ID')} ${ing.unit}
+                </div>
+                <div class="stock-progress-bg">
+                  <div class="stock-progress-fill" style="width: ${cappedRatio}%; background: ${fillColor};"></div>
+                </div>
+              </td>
+              <td>${ing.min_stock.toLocaleString('id-ID')} ${ing.unit}</td>
+              <td>${Maison.formatRupiah(ing.cost_per_unit)} / ${ing.unit}</td>
+              <td>
+                <span class="badge ${isLow ? 'badge-low-stock' : 'badge-completed'}">
+                  ${isLow ? '⚠️ MENIPIS' : 'AMAN'}
+                </span>
+              </td>
+              <td>
+                <button class="btn-outline-gold btn-sm" onclick='openEditIngredientModal(${JSON.stringify(ing)})'>
+                  Edit
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        document.getElementById('low-stock-count-badge').textContent = lowCount;
+      } catch (err) {
+        Maison.showToast('Gagal memuat bahan baku: ' + err.message, 'error');
+      }
+    }
+
+    async function checkLowStockAlerts() {
+      try {
+        const res = await Maison.fetchApi('/api/dapur/alerts');
+        const banner = document.getElementById('low-stock-banner');
+        if (res.lowStockItems && res.lowStockItems.length > 0) {
+          banner.style.display = 'flex';
+          const names = res.lowStockItems.map(i => `${i.name} (sisa ${i.current_stock} ${i.unit})`).join(', ');
+          document.getElementById('low-stock-banner-text').textContent = `Perhatian: ${res.lowStockItems.length} bahan menipis: ${names}`;
+        } else {
+          banner.style.display = 'none';
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    function openIngredientModal() {
+      document.getElementById('ing-modal-title').textContent = 'Tambah Bahan Baku Baru';
+      document.getElementById('edit-ing-id').value = '';
+      document.getElementById('ing-name').value = '';
+      document.getElementById('ing-unit').value = 'kg';
+      document.getElementById('ing-min-stock').value = '5';
+      document.getElementById('ing-current-stock').value = '10';
+      document.getElementById('ing-cost').value = '50000';
+      document.getElementById('ingredient-modal').classList.add('active');
+    }
+
+    function openEditIngredientModal(ing) {
+      document.getElementById('ing-modal-title').textContent = 'Edit Bahan Baku';
+      document.getElementById('edit-ing-id').value = ing.id;
+      document.getElementById('ing-name').value = ing.name;
+      document.getElementById('ing-unit').value = ing.unit;
+      document.getElementById('ing-min-stock').value = ing.min_stock;
+      document.getElementById('ing-current-stock').value = ing.current_stock;
+      document.getElementById('ing-cost').value = ing.cost_per_unit;
+      document.getElementById('ingredient-modal').classList.add('active');
+    }
+
+    function closeIngredientModal() {
+      document.getElementById('ingredient-modal').classList.remove('active');
+    }
+
+    async function saveIngredient(e) {
+      e.preventDefault();
+      const id = document.getElementById('edit-ing-id').value;
+      const name = document.getElementById('ing-name').value.trim();
+      const unit = document.getElementById('ing-unit').value;
+      const min_stock = parseFloat(document.getElementById('ing-min-stock').value);
+      const current_stock = parseFloat(document.getElementById('ing-current-stock').value);
+      const cost_per_unit = parseFloat(document.getElementById('ing-cost').value);
+
+      const payload = { name, unit, min_stock, current_stock, cost_per_unit };
+
+      try {
+        if (id) {
+          await Maison.fetchApi(`/api/dapur/ingredients/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+          });
+          Maison.showToast('Bahan baku berhasil diperbarui!', 'success');
+        } else {
+          await Maison.fetchApi('/api/dapur/ingredients', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+          Maison.showToast('Bahan baku baru berhasil ditambahkan!', 'success');
+        }
+        closeIngredientModal();
+        loadInventory();
+        checkLowStockAlerts();
+      } catch (err) {
+        Maison.showToast(err.message, 'error');
+      }
+    }
+
+    // Restock Logic
+    function openStockInModal() {
+      document.getElementById('sin-ingredient').value = '';
+      document.getElementById('sin-quantity').value = '';
+      document.getElementById('sin-unit-cost').value = '';
+      document.getElementById('sin-total-cost').textContent = 'Rp 0';
+      document.getElementById('sin-supplier').value = '';
+      document.getElementById('sin-notes').value = '';
+      document.getElementById('sin-date').value = new Date().toISOString().slice(0, 10);
+      document.getElementById('stock-in-modal').classList.add('active');
+    }
+
+    function closeStockInModal() {
+      document.getElementById('stock-in-modal').classList.remove('active');
+    }
+
+    function updateStockInUnit() {
+      const select = document.getElementById('sin-ingredient');
+      const selectedOption = select.options[select.selectedIndex];
+      if (selectedOption && selectedOption.dataset.unit) {
+        document.getElementById('sin-unit-label').textContent = selectedOption.dataset.unit;
+        document.getElementById('sin-unit-cost').value = selectedOption.dataset.cost || 0;
+        calculateStockInTotal();
+      }
+    }
+
+    function calculateStockInTotal() {
+      const qty = parseFloat(document.getElementById('sin-quantity').value) || 0;
+      const cost = parseFloat(document.getElementById('sin-unit-cost').value) || 0;
+      const total = qty * cost;
+      document.getElementById('sin-total-cost').textContent = Maison.formatRupiah(total);
+    }
+
+    async function saveStockIn(e) {
+      e.preventDefault();
+      const ingredient_id = parseInt(document.getElementById('sin-ingredient').value, 10);
+      const quantity = parseFloat(document.getElementById('sin-quantity').value);
+      const cost_per_unit = parseFloat(document.getElementById('sin-unit-cost').value);
+      const supplier = document.getElementById('sin-supplier').value.trim();
+      const notes = document.getElementById('sin-notes').value.trim();
+      const date = document.getElementById('sin-date').value;
+
+      try {
+        const res = await Maison.fetchApi('/api/dapur/stock-in', {
+          method: 'POST',
+          body: JSON.stringify({ ingredient_id, quantity, cost_per_unit, supplier, notes, date })
+        });
+        Maison.showToast(res.message, 'success');
+        closeStockInModal();
+        loadInventory();
+        checkLowStockAlerts();
+      } catch (err) {
+        Maison.showToast(err.message, 'error');
+      }
+    }
+
+    // --- TAB 4: STOCK LOGS ---
+    async function loadStockLogs() {
+      try {
+        const res = await Maison.fetchApi('/api/dapur/stock-logs');
+        const tbody = document.getElementById('stock-logs-table-body');
+        if (res.logs.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">Belum ada riwayat mutasi stok.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = res.logs.map(l => {
+          const isNegative = l.change_amount < 0;
+          return `
+            <tr>
+              <td style="font-size: 0.8rem; color: var(--text-dim);">${Maison.formatDateTime(l.created_at)}</td>
+              <td><strong style="color: var(--gold-light);">${l.ingredient_name}</strong></td>
+              <td>
+                <span style="font-weight: 700; color: ${isNegative ? '#f87171' : '#34d399'};">
+                  ${isNegative ? '' : '+'}${l.change_amount} ${l.ingredient_unit}
+                </span>
+              </td>
+              <td>${l.balance_after} ${l.ingredient_unit}</td>
+              <td style="font-size: 0.82rem; color: var(--text-muted);">${l.notes || l.reason}</td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        Maison.showToast('Gagal memuat log mutasi: ' + err.message, 'error');
+      }
+    }
+
+    // Initialize
+    initDapur();
+  </script>
+</body>
+</html>

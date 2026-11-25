@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maison Resto - Buku Menu & Pemesanan Mandiri</title>
+  <link rel="stylesheet" href="/css/maison-theme.css">
+  <style>
+    .customer-hero {
+      text-align: center;
+      padding: 3.5rem 1.5rem 2rem;
+      background: radial-gradient(circle at top, rgba(212, 175, 55, 0.12) 0%, transparent 70%);
+      border-bottom: 1px solid var(--gold-border);
+    }
+    .customer-hero h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .customer-hero p {
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto;
+      font-size: 0.95rem;
+    }
+
+    /* Guest Details Bar */
+    .guest-bar {
+      max-width: 800px;
+      margin: -1.5rem auto 2rem;
+      background: var(--bg-card);
+      border: 1px solid var(--gold-primary);
+      border-radius: 12px;
+      padding: 1.25rem 1.75rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), var(--gold-glow);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      position: relative;
+      z-index: 20;
+    }
+
+    @media (max-width: 640px) {
+      .guest-bar {
+        grid-template-columns: 1fr;
+        margin: -1rem 1rem 1.5rem;
+        padding: 1rem;
+      }
+    }
+
+    /* Category Filter */
+    .category-scroll {
+      display: flex;
+      gap: 0.75rem;
+      overflow-x: auto;
+      padding: 0.5rem 1.5rem 1.5rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      scrollbar-width: none;
+    }
+    .category-scroll::-webkit-scrollbar {
+      display: none;
+    }
+
+    .cat-chip {
+      background: var(--bg-card);
+      border: 1px solid var(--gold-border);
+      color: var(--text-muted);
+      padding: 0.6rem 1.25rem;
+      border-radius: 9999px;
+      font-family: var(--font-serif);
+      font-size: 0.85rem;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .cat-chip:hover, .cat-chip.active {
+      background: var(--gold-muted);
+      border-color: var(--gold-primary);
+      color: var(--gold-light);
+      box-shadow: 0 0 15px rgba(212, 175, 55, 0.2);
+    }
+
+    /* Menu Grid */
+    .menu-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem 6rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.75rem;
+    }
+
+    .menu-card {
+      background: var(--bg-card);
+      border: 1px solid var(--gold-border);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: var(--transition);
+    }
+
+    .menu-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--gold-border-bright);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7), 0 0 20px rgba(212, 175, 55, 0.15);
+    }
+
+    .menu-img-wrap {
+      width: 100%;
+      height: 190px;
+      overflow: hidden;
+      position: relative;
+      background: #1a1d26;
+    }
+
+    .menu-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.5s ease;
+    }
+
+    .menu-card:hover .menu-img {
+      transform: scale(1.05);
+    }
+
+    .menu-cat-badge {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(10, 12, 16, 0.85);
+      backdrop-filter: blur(4px);
+      color: var(--gold-light);
+      font-size: 0.7rem;
+      font-family: var(--font-serif);
+      padding: 0.25rem 0.65rem;
+      border-radius: 9999px;
+      border: 1px solid var(--gold-border);
+      letter-spacing: 0.05em;
+    }
+
+    .menu-content {
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    .menu-title {
+      font-size: 1.05rem;
+      color: var(--gold-light);
+      margin-bottom: 0.35rem;
+      line-height: 1.3;
+    }
+
+    .menu-desc {
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      line-height: 1.5;
+      margin-bottom: 1rem;
+      flex: 1;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .menu-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 0.75rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .menu-price {
+      font-family: var(--font-serif);
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--gold-primary);
+    }
+
+    .qty-control {
+      display: flex;
+      align-items: center;
+      background: rgba(10, 12, 16, 0.8);
+      border: 1px solid var(--gold-border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .qty-btn {
+      background: transparent;
+      border: none;
+      color: var(--gold-light);
+      width: 32px;
+      height: 32px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+    }
+
+    .qty-btn:hover {
+      background: var(--gold-muted);
+      color: #fff;
+    }
+
+    .qty-display {
+      width: 30px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 0.88rem;
+      color: #fff;
+    }
+
+    /* Floating Cart Bar */
+    .floating-cart-bar {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 3rem);
+      max-width: 700px;
+      background: var(--bg-card);
+      border: 1px solid var(--gold-primary);
+      border-radius: 50px;
+      padding: 0.75rem 1.5rem;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9), 0 0 30px rgba(212, 175, 55, 0.35);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 90;
+      animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes slideUp {
+      from { transform: translate(-50%, 100%); opacity: 0; }
+      to { transform: translate(-50%, 0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <header class="maison-nav">
+    <a href="/" class="brand-wrapper">
+      <div class="brand-logo">M</div>
+      <div class="brand-text">
+        <h1 class="serif-title">MAISON RESTO</h1>
+        <p>Haute Gastronomie</p>
+      </div>
+    </a>
+    <div class="nav-actions">
+      <span class="portal-badge" style="background: rgba(212, 175, 55, 0.1); border-color: var(--gold-primary);">
+        <span>🍽</span> Menu Pemesanan Tamu
+      </span>
+      <button id="cart-nav-btn" class="btn-outline-gold" onclick="openCartModal()">
+        <span>🛍</span> <span id="cart-item-count">0 Item</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Hero Banner -->
+  <section class="customer-hero">
+    <p style="color: var(--gold-primary); letter-spacing: 0.2em; text-transform: uppercase; font-size: 0.8rem; margin-bottom: 0.5rem;">Expérience Culinaire</p>
+    <h1>Pesan Hidangan Mewah Anda</h1>
+    <p>Silakan isi nama dan nomor meja Anda, lalu pilih hidangan lezat favorit Anda. Pesanan langsung diproses kasir dan dimasak dapur kami.</p>
+  </section>
+
+  <!-- Guest Information Bar -->
+  <div class="guest-bar">
+    <div class="form-group" style="margin-bottom: 0;">
+      <label class="form-label">Nama Pelanggan <span style="color: var(--accent-red);">*</span></label>
+      <input type="text" id="customer-name" class="form-input" placeholder="Masukkan nama Anda (cth. Ibu Clarissa)" required>
+    </div>
+    <div class="form-group" style="margin-bottom: 0;">
+      <label class="form-label">Nomor Meja <span style="color: var(--accent-red);">*</span></label>
+      <select id="table-number" class="form-select" required>
+        <option value="">-- Pilih Nomor Meja --</option>
+        <option value="Meja 01">Meja 01 (Dining Room)</option>
+        <option value="Meja 02">Meja 02 (Dining Room)</option>
+        <option value="Meja 03">Meja 03 (Dining Room)</option>
+        <option value="Meja 04">Meja 04 (Window View)</option>
+        <option value="Meja 05">Meja 05 (Window View)</option>
+        <option value="Meja 06">Meja 06 (Terrace)</option>
+        <option value="Meja 07">Meja 07 (Terrace)</option>
+        <option value="Meja 08">Meja 08 (Terrace)</option>
+        <option value="Meja VIP 01">Meja VIP 01 (Private Room A)</option>
+        <option value="Meja VIP 02">Meja VIP 02 (Private Room B)</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Search & Category Filters -->
+  <div style="max-width: 1200px; margin: 0 auto; padding: 0 1.5rem 1rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+    <div style="flex: 1; min-width: 260px;">
+      <input type="text" id="menu-search" class="form-input" placeholder="Cari hidangan atau minuman..." oninput="filterMenu()">
+    </div>
+  </div>
+
+  <div class="category-scroll" id="category-pills">
+    <button class="cat-chip active" onclick="setCategory('all')">✨ Semua Hidangan</button>
+  </div>
+
+  <!-- Menu Items Grid -->
+  <main class="menu-container" id="menu-grid">
+    <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 1rem; color: var(--text-muted);">
+      <div style="font-size: 2rem; margin-bottom: 0.5rem;">🍽</div>
+      Memuat daftar hidangan terbaik Maison Resto...
+    </div>
+  </main>
+
+  <!-- Floating Cart Summary Bar (shows when cart has items) -->
+  <div id="floating-cart" class="floating-cart-bar" style="display: none;">
+    <div>
+      <div style="font-size: 0.8rem; color: var(--gold-light); text-transform: uppercase; letter-spacing: 0.05em;" id="floating-cart-count">0 Pesanan Dipilih</div>
+      <div style="font-family: var(--font-serif); font-size: 1.25rem; font-weight: 700; color: #fff;" id="floating-cart-total">Rp 0</div>
+    </div>
+    <button class="btn-gold" onclick="openCartModal()">
+      <span>Lihat Keranjang & Kirim</span> &rarr;
+    </button>
+  </div>
+
+  <!-- Cart Modal Dialog -->
+  <div id="cart-modal" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 650px;">
+      <div class="modal-header">
+        <h3 class="serif-title" style="margin: 0; font-size: 1.25rem;">Pesanan Anda</h3>
+        <button class="modal-close" onclick="closeCartModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div id="cart-guest-summary" style="background: rgba(212, 175, 55, 0.08); border: 1px solid var(--gold-border); border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1.25rem; display: flex; justify-content: space-between; font-size: 0.85rem;">
+          <div><strong style="color: var(--gold-light);">Pelanggan:</strong> <span id="cart-guest-name">-</span></div>
+          <div><strong style="color: var(--gold-light);">Meja:</strong> <span id="cart-guest-table">-</span></div>
+        </div>
+
+        <!-- Cart items list -->
+        <div id="cart-items-list" style="margin-bottom: 1.5rem; max-height: 280px; overflow-y: auto;">
+          <!-- Dynamically populated -->
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Catatan Tambahan untuk Dapur (Opsional)</label>
+          <textarea id="order-notes" class="form-textarea" rows="2" placeholder="Contoh: Tingkat kematangan steak medium, minuman jangan terlalu manis..."></textarea>
+        </div>
+
+        <div style="border-top: 1px dashed var(--gold-border); padding-top: 1rem; margin-top: 1rem;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">
+            <span>Subtotal</span>
+            <span id="cart-modal-subtotal" style="color: #fff;">Rp 0</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-family: var(--font-serif); font-size: 1.35rem; font-weight: 700; color: var(--gold-light); margin-top: 0.5rem; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 0.5rem;">
+            <span>Total Pembayaran</span>
+            <span id="cart-modal-total">Rp 0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="justify-content: space-between;">
+        <button class="btn-outline-gold" onclick="closeCartModal()">Lanjut Pilih Menu</button>
+        <button id="submit-order-btn" class="btn-gold" onclick="submitCustomerOrder()">
+          <span>🛎 Kirim Pesanan Sekarang</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Order Success Modal -->
+  <div id="success-modal" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 480px; text-align: center; padding: 2rem 1.5rem;">
+      <div style="width: 70px; height: 70px; border-radius: 50%; background: var(--accent-green-bg); border: 2px solid var(--accent-green); display: flex; align-items: center; justify-content: center; font-size: 2.2rem; color: #34d399; margin: 0 auto 1.25rem;">
+        ✓
+      </div>
+      <h2 class="serif-title" style="font-size: 1.6rem; margin-bottom: 0.5rem;">Pesanan Diterima!</h2>
+      <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+        Terima kasih, pesanan Anda telah diteruskan ke meja <strong>Kasir</strong> dan antrean <strong>Dapur</strong> Maison Resto.
+      </p>
+
+      <div style="background: rgba(10, 12, 16, 0.85); border: 1px solid var(--gold-border); border-radius: 8px; padding: 1rem; text-align: left; font-size: 0.85rem; margin-bottom: 1.75rem;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem;">
+          <span style="color: var(--text-dim);">Kode Pesanan:</span>
+          <strong id="success-order-code" style="color: var(--gold-light); font-family: monospace;">-</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem;">
+          <span style="color: var(--text-dim);">Nama Tamu:</span>
+          <strong id="success-customer-name" style="color: #fff;">-</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem;">
+          <span style="color: var(--text-dim);">Nomor Meja:</span>
+          <strong id="success-table-number" style="color: var(--gold-primary);">-</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 0.5rem; margin-top: 0.5rem;">
+          <span style="color: var(--text-dim);">Total Tagihan:</span>
+          <strong id="success-total" style="color: var(--gold-light); font-size: 1.1rem;">-</strong>
+        </div>
+      </div>
+
+      <button class="btn-gold" style="width: 100%; justify-content: center;" onclick="resetCustomerOrder()">
+        Pesan Tambahan / Selesai
+      </button>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="/js/common.js"></script>
+  <script>
+    // State
+    let allMenuItems = [];
+    let allCategories = [];
+    let selectedCategory = 'all';
+    let cart = {}; // { menuItemId: { item, qty, notes } }
+
+    async function loadMenu() {
+      try {
+        const res = await fetch('/api/customer/menu');
+        const data = await res.json();
+        allMenuItems = data.menuItems;
+        allCategories = data.categories;
+
+        renderCategoryPills();
+        renderMenuGrid();
+      } catch (err) {
+        Maison.showToast('Gagal memuat menu: ' + err.message, 'error');
+      }
+    }
+
+    function renderCategoryPills() {
+      const container = document.getElementById('category-pills');
+      let html = `<button class="cat-chip ${selectedCategory === 'all' ? 'active' : ''}" onclick="setCategory('all')">✨ Semua Hidangan</button>`;
+      allCategories.forEach(cat => {
+        html += `
+          <button class="cat-chip ${selectedCategory === cat.name ? 'active' : ''}" onclick="setCategory('${cat.name}')">
+            <span>${cat.icon || '🍽'}</span> ${cat.name}
+          </button>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    function setCategory(catName) {
+      selectedCategory = catName;
+      renderCategoryPills();
+      renderMenuGrid();
+    }
+
+    function filterMenu() {
+      renderMenuGrid();
+    }
+
+    function renderMenuGrid() {
+      const grid = document.getElementById('menu-grid');
+      const searchQuery = (document.getElementById('menu-search').value || '').toLowerCase().trim();
+
+      let filtered = allMenuItems.filter(item => {
+        const matchCategory = selectedCategory === 'all' || item.category === selectedCategory;
+        const matchSearch = item.name.toLowerCase().includes(searchQuery) || (item.description && item.description.toLowerCase().includes(searchQuery));
+        return matchCategory && matchSearch;
+      });
+
+      if (allMenuItems.length === 0) {
+        grid.innerHTML = `
+          <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 1rem; color: var(--text-muted); background: var(--bg-card); border-radius: 12px; border: 1px dashed var(--gold-border);">
+            <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">🍽</div>
+            <h3 style="color: var(--gold-light); margin-bottom: 0.5rem;">Buku Menu Masih Kosong</h3>
+            <p style="font-size: 0.9rem; max-width: 500px; margin: 0 auto;">Belum ada menu yang didaftarkan. Anda dapat menambahkan hidangan baru beserta resep bahan bakunya melalui <a href="/dapur" style="color: var(--gold-primary); font-weight: 600;">Halaman Dapur & Gudang</a>.</p>
+          </div>
+        `;
+        return;
+      }
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 1rem; color: var(--text-muted);">
+            Tidak ada menu yang sesuai dengan pencarian Anda.
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(item => {
+        const inCart = cart[item.id];
+        const qty = inCart ? inCart.qty : 0;
+        const defaultImg = 'https://images.unsplash.com/photo-1544025162-d76694265947?w=600&auto=format&fit=crop&q=80';
+
+        return `
+          <div class="menu-card">
+            <div class="menu-img-wrap">
+              <span class="menu-cat-badge">${item.category}</span>
+              <img src="${item.image_url || defaultImg}" alt="${item.name}" class="menu-img" onerror="this.src='${defaultImg}'">
+            </div>
+            <div class="menu-content">
+              <h3 class="menu-title">${item.name}</h3>
+              <p class="menu-desc">${item.description || 'Hidangan istimewa racikan chef Maison Resto.'}</p>
+              
+              <div class="menu-footer">
+                <div class="menu-price">${Maison.formatRupiah(item.price)}</div>
+                
+                ${qty > 0 ? `
+                  <div class="qty-control">
+                    <button class="qty-btn" onclick="updateItemQty(${item.id}, -1)">-</button>
+                    <span class="qty-display">${qty}</span>
+                    <button class="qty-btn" onclick="updateItemQty(${item.id}, 1)">+</button>
+                  </div>
+                ` : `
+                  <button class="btn-outline-gold btn-sm" onclick="addItemToCart(${item.id})">
+                    <span>+ Tambah</span>
+                  </button>
+                `}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function addItemToCart(id) {
+      const item = allMenuItems.find(i => i.id === id);
+      if (!item) return;
+
+      if (!cart[id]) {
+        cart[id] = { item, qty: 1, notes: '' };
+      } else {
+        cart[id].qty += 1;
+      }
+
+      Maison.showToast(`+1 ${item.name} ditambahkan`, 'info');
+      updateCartUI();
+      renderMenuGrid();
+    }
+
+    function updateItemQty(id, delta) {
+      if (!cart[id]) return;
+      cart[id].qty += delta;
+      if (cart[id].qty <= 0) {
+        delete cart[id];
+      }
+      updateCartUI();
+      renderMenuGrid();
+      if (document.getElementById('cart-modal').classList.contains('active')) {
+        renderCartModalItems();
+      }
+    }
+
+    function updateCartUI() {
+      let totalQty = 0;
+      let totalPrice = 0;
+
+      for (const id in cart) {
+        totalQty += cart[id].qty;
+        totalPrice += cart[id].qty * cart[id].item.price;
+      }
+
+      document.getElementById('cart-item-count').textContent = `${totalQty} Item`;
+
+      const floatingCart = document.getElementById('floating-cart');
+      if (totalQty > 0) {
+        floatingCart.style.display = 'flex';
+        document.getElementById('floating-cart-count').textContent = `${totalQty} Pesanan Dipilih`;
+        document.getElementById('floating-cart-total').textContent = Maison.formatRupiah(totalPrice);
+      } else {
+        floatingCart.style.display = 'none';
+      }
+    }
+
+    function openCartModal() {
+      const customerName = document.getElementById('customer-name').value.trim();
+      const tableNumber = document.getElementById('table-number').value;
+
+      document.getElementById('cart-guest-name').textContent = customerName || '(Belum diisi)';
+      document.getElementById('cart-guest-table').textContent = tableNumber || '(Belum dipilih)';
+
+      renderCartModalItems();
+      document.getElementById('cart-modal').classList.add('active');
+    }
+
+    function closeCartModal() {
+      document.getElementById('cart-modal').classList.remove('active');
+    }
+
+    function renderCartModalItems() {
+      const listEl = document.getElementById('cart-items-list');
+      const items = Object.values(cart);
+
+      if (items.length === 0) {
+        listEl.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 2rem;">Keranjang Anda masih kosong.</div>`;
+        document.getElementById('cart-modal-subtotal').textContent = 'Rp 0';
+        document.getElementById('cart-modal-total').textContent = 'Rp 0';
+        document.getElementById('submit-order-btn').disabled = true;
+        return;
+      }
+
+      document.getElementById('submit-order-btn').disabled = false;
+
+      let subtotal = 0;
+      listEl.innerHTML = items.map(entry => {
+        const itemTotal = entry.qty * entry.item.price;
+        subtotal += itemTotal;
+        return `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid rgba(255,255,255,0.06);">
+            <div style="flex: 1; margin-right: 1rem;">
+              <div style="font-weight: 600; color: var(--gold-light); font-size: 0.95rem;">${entry.item.name}</div>
+              <div style="font-size: 0.8rem; color: var(--text-dim);">${Maison.formatRupiah(entry.item.price)} x ${entry.qty}</div>
+            </div>
+            <div class="qty-control" style="margin-right: 1.25rem;">
+              <button class="qty-btn" onclick="updateItemQty(${entry.item.id}, -1)">-</button>
+              <span class="qty-display">${entry.qty}</span>
+              <button class="qty-btn" onclick="updateItemQty(${entry.item.id}, 1)">+</button>
+            </div>
+            <div style="font-family: var(--font-serif); font-weight: 700; color: #fff; min-width: 90px; text-align: right;">
+              ${Maison.formatRupiah(itemTotal)}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('cart-modal-subtotal').textContent = Maison.formatRupiah(subtotal);
+      document.getElementById('cart-modal-total').textContent = Maison.formatRupiah(subtotal);
+    }
+
+    async function submitCustomerOrder() {
+      const customerName = document.getElementById('customer-name').value.trim();
+      const tableNumber = document.getElementById('table-number').value;
+      const orderNotes = document.getElementById('order-notes').value.trim();
+
+      if (!customerName) {
+        Maison.showToast('Silakan isi Nama Pelanggan terlebih dahulu', 'warning');
+        document.getElementById('customer-name').focus();
+        closeCartModal();
+        return;
+      }
+
+      if (!tableNumber) {
+        Maison.showToast('Silakan pilih Nomor Meja Anda', 'warning');
+        document.getElementById('table-number').focus();
+        closeCartModal();
+        return;
+      }
+
+      const items = Object.values(cart).map(entry => ({
+        menu_item_id: entry.item.id,
+        quantity: entry.qty,
+        notes: ''
+      }));
+
+      if (items.length === 0) {
+        Maison.showToast('Pilih setidaknya 1 menu hidangan', 'warning');
+        return;
+      }
+
+      const submitBtn = document.getElementById('submit-order-btn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Mengirim Pesanan...';
+
+      try {
+        const res = await fetch('/api/customer/order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customer_name: customerName,
+            table_number: tableNumber,
+            items,
+            notes: orderNotes
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Gagal mengirim pesanan');
+        }
+
+        // Show Success Modal
+        closeCartModal();
+        document.getElementById('success-order-code').textContent = data.order.order_code;
+        document.getElementById('success-customer-name').textContent = data.order.customer_name;
+        document.getElementById('success-table-number').textContent = data.order.table_number;
+        document.getElementById('success-total').textContent = Maison.formatRupiah(data.order.total_amount);
+        document.getElementById('success-modal').classList.add('active');
+
+        Maison.playChime();
+        Maison.showToast('Pesanan berhasil diteruskan ke Kasir & Dapur!', 'success');
+      } catch (err) {
+        Maison.showToast(err.message, 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = '🛎 Kirim Pesanan Sekarang';
+      }
+    }
+
+    function resetCustomerOrder() {
+      cart = {};
+      document.getElementById('order-notes').value = '';
+      updateCartUI();
+      renderMenuGrid();
+      document.getElementById('success-modal').classList.remove('active');
+    }
+
+    // Initialize
+    loadMenu();
+  </script>
+</body>
+</html>

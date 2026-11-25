@@ -1,0 +1,21 @@
+{
+  "name": "maison-resto",
+  "version": "1.0.0",
+  "description": "Sistem Restoran Maison Resto - 4 Halaman Terpisah & 3 Sistem Login",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node test.js"
+  },
+  "keywords": [
+    "restaurant",
+    "pos",
+    "maison-resto",
+    "kitchen",
+    "inventory",
+    "owner"
+  ],
+  "author": "Maison Resto",
+  "license": "ISC"
+}

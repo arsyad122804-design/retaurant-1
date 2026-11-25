@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Kasir - Maison Resto</title>
+  <link rel="stylesheet" href="/css/maison-theme.css">
+  <style>
+    .order-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.25rem;
+    }
+
+    .order-card {
+      background: var(--bg-card);
+      border: 1px solid var(--gold-border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      transition: var(--transition);
+      position: relative;
+    }
+
+    .order-card:hover {
+      border-color: var(--gold-border-bright);
+      box-shadow: var(--shadow-md);
+    }
+
+    .order-card.unpaid {
+      border-left: 4px solid var(--accent-amber);
+    }
+
+    .order-card.paid {
+      border-left: 4px solid var(--accent-green);
+    }
+
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .order-code {
+      font-family: monospace;
+      font-weight: 700;
+      color: var(--gold-light);
+      font-size: 0.95rem;
+    }
+
+    .order-guest-info {
+      font-size: 0.85rem;
+      color: #fff;
+      margin-bottom: 0.5rem;
+    }
+
+    .order-items-mini {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      flex: 1;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    .order-items-mini li {
+      margin-bottom: 0.35rem;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .order-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 0.75rem;
+      border-top: 1px dashed rgba(255, 255, 255, 0.08);
+      margin-top: auto;
+    }
+
+    .order-total {
+      font-family: var(--font-serif);
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--gold-light);
+    }
+
+    .quick-cash-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--gold-border);
+      color: var(--gold-light);
+      padding: 0.35rem 0.65rem;
+      border-radius: 4px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .quick-cash-btn:hover {
+      background: var(--gold-muted);
+      border-color: var(--gold-primary);
+    }
+
+    /* 2 Payment Methods Selector */
+    .pay-method-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .pay-method-card {
+      background: rgba(10, 12, 16, 0.7);
+      border: 1px solid var(--gold-border);
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      transition: var(--transition);
+      text-align: left;
+    }
+
+    .pay-method-card:hover {
+      border-color: var(--gold-primary);
+      color: #fff;
+    }
+
+    .pay-method-card.active {
+      background: var(--gold-muted);
+      border-color: var(--gold-primary);
+      color: var(--gold-light);
+      box-shadow: 0 0 15px rgba(212, 175, 55, 0.25);
+    }
+
+    /* QRIS Stand & Card */
+    .qris-box {
+      background: #ffffff;
+      color: #111111;
+      border-radius: 12px;
+      padding: 1.25rem;
+      text-align: center;
+      border: 2px solid #ed1c24;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+      margin-bottom: 1.25rem;
+    }
+
+    .qris-top-banner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #ed1c24;
+      padding-bottom: 0.5rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .qris-logo-badge {
+      background: #ed1c24;
+      color: #ffffff;
+      font-weight: 900;
+      font-size: 1.25rem;
+      letter-spacing: -0.5px;
+      padding: 0.15rem 0.65rem;
+      border-radius: 4px;
+      font-family: sans-serif;
+    }
+
+    .gpn-badge {
+      border: 1.5px solid #111;
+      padding: 0.1rem 0.4rem;
+      font-size: 0.7rem;
+      font-weight: 800;
+      border-radius: 3px;
+      color: #ed1c24;
+    }
+
+    .qris-canvas-wrapper {
+      position: relative;
+      width: 204px;
+      height: 204px;
+      margin: 0.4rem auto;
+      background: #ffffff;
+      border: 1px solid #ddd;
+      padding: 8px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .qris-logo-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 38px;
+      height: 38px;
+      background: #0b0c10;
+      border: 2px solid #d4af37;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #d4af37;
+      font-family: var(--font-serif);
+      font-weight: 800;
+      font-size: 1.1rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <header class="maison-nav">
+    <div class="brand-wrapper">
+      <div class="brand-logo">K</div>
+      <div class="brand-text">
+        <h1 class="serif-title">MAISON RESTO</h1>
+        <p>Portal Kasir & Transaksi</p>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <span class="portal-badge" style="background: rgba(16, 185, 129, 0.15); border-color: #10b981; color: #34d399;">
+        <span>💵</span> Kasir Aktif: <strong id="cashier-name" style="color: #fff; margin-left: 4px;">Jean Kasir</strong>
+      </span>
+      <button class="btn-outline-gold btn-sm" onclick="refreshOrders()">
+        <span>🔄 Segarkan</span>
+      </button>
+      <button class="btn-danger btn-sm" onclick="Maison.logout('kasir')">
+        Keluar
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <div style="max-width: 1300px; margin: 1.5rem auto 3rem; padding: 0 1.5rem; width: 100%;">
+    
+    <!-- Navigation Tabs -->
+    <div class="tabs-maison">
+      <button class="tab-btn active" id="tab-active-btn" onclick="switchTab('active')">
+        🔔 Pesanan Aktif & Pembayaran (<span id="active-count-badge">0</span>)
+      </button>
+      <button class="tab-btn" id="tab-history-btn" onclick="switchTab('history')">
+        📜 Riwayat Transaksi & Struk
+      </button>
+    </div>
+
+    <!-- TAB 1: ACTIVE ORDERS -->
+    <div id="tab-active">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
+        <div>
+          <h2 class="serif-title" style="font-size: 1.4rem;">Antrean Pesanan Kasir</h2>
+          <p style="color: var(--text-muted); font-size: 0.85rem;">Pesanan yang masuk dari tamu di halaman /pesan secara otomatis tampil di sini.</p>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <select id="filter-status-select" class="form-select" style="width: auto; padding: 0.45rem 1rem;" onchange="loadActiveOrders()">
+            <option value="active">Semua Belum Selesai</option>
+            <option value="unpaid">Menunggu Pembayaran</option>
+            <option value="paid">Sudah Dibayar</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="active-orders-container" class="order-grid">
+        <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--text-muted);">
+          Memuat pesanan aktif...
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: TRANSACTION HISTORY -->
+    <div id="tab-history" style="display: none;">
+      <div class="card-maison" style="margin-bottom: 1.5rem;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) 120px; gap: 1rem; align-items: flex-end;">
+          <div>
+            <label class="form-label">Cari Pesanan</label>
+            <input type="text" id="history-search" class="form-input" placeholder="Kode pesanan, nama tamu, meja..." onkeyup="if(event.key==='Enter') loadHistory()">
+          </div>
+          <div>
+            <label class="form-label">Tanggal Transaksi</label>
+            <input type="date" id="history-date" class="form-input" onchange="loadHistory()">
+          </div>
+          <div>
+            <button class="btn-gold" style="width: 100%; justify-content: center;" onclick="loadHistory()">
+              Cari
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-grid" style="margin-bottom: 1.5rem;">
+        <div class="stat-card">
+          <div class="stat-title">Total Pendapatan Terfilter</div>
+          <div class="stat-value" id="history-total-sales">Rp 0</div>
+          <div class="stat-subtext">Dari transaksi yang sudah dibayar</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">Jumlah Transaksi</div>
+          <div class="stat-value" id="history-total-count">0</div>
+          <div class="stat-subtext">Pesanan tercatat</div>
+        </div>
+      </div>
+
+      <div class="card-maison">
+        <div class="table-responsive">
+          <table class="table-maison">
+            <thead>
+              <tr>
+                <th>Waktu</th>
+                <th>Kode</th>
+                <th>Pelanggan</th>
+                <th>Meja</th>
+                <th>Menu Dipesan</th>
+                <th>Total</th>
+                <th>Metode</th>
+                <th>Status</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="history-table-body">
+              <tr>
+                <td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2rem;">Memuat riwayat transaksi...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PAYMENT MODAL -->
+  <div id="payment-modal" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 550px;">
+      <div class="modal-header">
+        <h3 class="serif-title" style="margin: 0; font-size: 1.25rem;">Proses Pembayaran Kasir</h3>
+        <button class="modal-close" onclick="closePaymentModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div style="background: rgba(10, 12, 16, 0.8); border: 1px solid var(--gold-border); border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+            <span style="color: var(--text-dim); font-size: 0.85rem;">Kode Pesanan:</span>
+            <strong id="pay-order-code" style="color: var(--gold-light); font-family: monospace;">-</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+            <span style="color: var(--text-dim); font-size: 0.85rem;">Pelanggan & Meja:</span>
+            <span id="pay-guest-info" style="color: #fff; font-size: 0.85rem;">-</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 0.5rem; margin-top: 0.5rem;">
+            <span style="font-size: 1rem; color: #fff;">Total Tagihan:</span>
+            <strong id="pay-total-amount" style="font-family: var(--font-serif); font-size: 1.4rem; color: var(--gold-primary);">Rp 0</strong>
+          </div>
+        </div>
+
+        <!-- 2 Pilihan Metode Pembayaran: Tunai & QRIS -->
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label class="form-label">Pilih Metode Pembayaran</label>
+          <div class="pay-method-tabs">
+            <button type="button" id="pay-tab-cash" class="pay-method-card active" onclick="selectPaymentMethod('cash')">
+              <span style="font-size: 1.5rem;">💵</span>
+              <div>
+                <strong style="color: #fff; display: block; font-size: 0.95rem;">Tunai (Cash)</strong>
+                <span style="font-size: 0.72rem; color: var(--text-dim);">Hitung uang & kembalian</span>
+              </div>
+            </button>
+            <button type="button" id="pay-tab-qris" class="pay-method-card" onclick="selectPaymentMethod('qris')">
+              <span style="font-size: 1.5rem;">📱</span>
+              <div>
+                <strong style="color: #fff; display: block; font-size: 0.95rem;">QRIS Dinamis</strong>
+                <span style="font-size: 0.72rem; color: var(--text-dim);">Scan barcode QRIS</span>
+              </div>
+            </button>
+          </div>
+          <input type="hidden" id="pay-method" value="cash">
+        </div>
+
+        <!-- SECTION 1: TUNAI (CASH) -->
+        <div id="section-cash-payment">
+          <div class="form-group">
+            <label class="form-label">Uang Diterima / Dibayar (Rp)</label>
+            <input type="number" id="pay-received" class="form-input" placeholder="0" oninput="calculateChange()">
+            
+            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap;">
+              <button type="button" class="quick-cash-btn" onclick="setQuickCash('exact')">Uang Pas</button>
+              <button type="button" class="quick-cash-btn" onclick="setQuickCash(100000)">100.000</button>
+              <button type="button" class="quick-cash-btn" onclick="setQuickCash(200000)">200.000</button>
+              <button type="button" class="quick-cash-btn" onclick="setQuickCash(500000)">500.000</button>
+              <button type="button" class="quick-cash-btn" onclick="setQuickCash(1000000)">1.000.000</button>
+            </div>
+          </div>
+
+          <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 0.85rem 1rem; margin-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: var(--text-muted); font-size: 0.9rem;">Kembalian:</span>
+            <strong id="pay-change-amount" style="font-family: var(--font-serif); font-size: 1.3rem; color: #34d399;">Rp 0</strong>
+          </div>
+        </div>
+
+        <!-- SECTION 2: QRIS (STAND & SCAN BARCODE) -->
+        <div id="section-qris-payment" style="display: none;">
+          <div class="qris-box">
+            <div class="qris-top-banner">
+              <span class="qris-logo-badge">QRIS</span>
+              <span style="font-size: 0.72rem; font-weight: 700; letter-spacing: 0.5px; color: #555;">PEMBAYARAN DIGITAL</span>
+              <span class="gpn-badge">GPN</span>
+            </div>
+
+            <div style="font-size: 0.75rem; color: #666; margin-bottom: 2px;">MERCHANT:</div>
+            <div style="font-size: 1.05rem; font-weight: 800; color: #111; letter-spacing: 0.5px;">MAISON RESTO</div>
+            <div style="font-size: 0.72rem; color: #777; font-family: monospace;">NMID: ID102026889922 &bull; A01</div>
+
+            <!-- DYNAMIC QR CODE DISPLAY -->
+            <div class="qris-canvas-wrapper">
+              <canvas id="qris-canvas" width="188" height="188"></canvas>
+              <div class="qris-logo-overlay">M</div>
+            </div>
+
+            <div style="margin-top: 0.5rem;">
+              <div style="font-size: 0.78rem; color: #555;">Total Tagihan:</div>
+              <div id="qris-amount-badge" style="font-family: var(--font-serif); font-size: 1.4rem; font-weight: 800; color: #b45309;">
+                Rp 0
+              </div>
+            </div>
+
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.5rem 0.75rem; margin-top: 0.75rem; font-size: 0.75rem; color: #475569;">
+              <div style="font-weight: 600; color: #16a34a; margin-bottom: 2px;">
+                🟢 QRIS Siap Discan Pelanggan
+              </div>
+              <div>BCA Mobile &bull; Livin' Mandiri &bull; BRImo &bull; BNI Mobile &bull; GoPay &bull; OVO &bull; DANA &bull; ShopeePay</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 0.75rem; font-size: 0.75rem; color: var(--gold-light);">
+          ℹ <em>Catatan: Konfirmasi pembayaran ini akan otomatis memotong stok bahan baku di Gudang berdasarkan resep makanan.</em>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-outline-gold" onclick="closePaymentModal()">Batal</button>
+        <button id="confirm-pay-btn" class="btn-gold" onclick="submitPayment()">
+          <span>✓ Selesaikan Pembayaran & Cetak Struk</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECEIPT MODAL (Thermal Receipt Format) -->
+  <div id="receipt-modal" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 440px; background: transparent; box-shadow: none; border: none;">
+      
+      <!-- Thermal Paper Box -->
+      <div class="receipt-box" id="printable-receipt">
+        <div class="receipt-header">
+          <h2>MAISON RESTO</h2>
+          <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Haute Gastronomie Francaise</div>
+          <div style="font-size: 11px; color: #666; margin-top: 2px;">Jl. Senopati No. 88, Kebayoran Baru, Jakarta</div>
+          <div style="font-size: 11px; color: #666;">Telp: (021) 7288-9922</div>
+        </div>
+
+        <div style="font-size: 11px; margin-bottom: 8px;">
+          <div class="receipt-row"><span>No. Struk</span><strong id="rcpt-code">-</strong></div>
+          <div class="receipt-row"><span>Tanggal</span><span id="rcpt-date">-</span></div>
+          <div class="receipt-row"><span>Kasir</span><span id="rcpt-cashier">-</span></div>
+          <div class="receipt-row"><span>Pelanggan</span><strong id="rcpt-customer">-</strong></div>
+          <div class="receipt-row"><span>Meja</span><strong id="rcpt-table">-</strong></div>
+        </div>
+
+        <div class="receipt-divider"></div>
+
+        <div id="rcpt-items-list" style="margin: 8px 0;">
+          <!-- items -->
+        </div>
+
+        <div class="receipt-divider"></div>
+
+        <div class="receipt-row">
+          <span>Subtotal:</span>
+          <span id="rcpt-subtotal">Rp 0</span>
+        </div>
+        <div class="receipt-row">
+          <span>Pajak Resto (10%):</span>
+          <span>Termasuk</span>
+        </div>
+
+        <div class="receipt-row receipt-total">
+          <span>TOTAL:</span>
+          <span id="rcpt-total">Rp 0</span>
+        </div>
+
+        <div class="receipt-row">
+          <span>Metode Bayar:</span>
+          <span id="rcpt-method" style="text-transform: uppercase;">CASH</span>
+        </div>
+        <div class="receipt-row">
+          <span>Bayar (Cash):</span>
+          <span id="rcpt-paid">Rp 0</span>
+        </div>
+        <div class="receipt-row">
+          <span>Kembalian:</span>
+          <span id="rcpt-change">Rp 0</span>
+        </div>
+
+        <div class="receipt-footer">
+          <div>*** TERIMA KASIH ATAS KUNJUNGAN ANDA ***</div>
+          <div style="margin-top: 4px;">Merci beaucoup et à bientôt!</div>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: center; gap: 1rem; margin-top: 1.5rem;">
+        <button class="btn-outline-gold" onclick="closeReceiptModal()">Tutup</button>
+        <button class="btn-gold" onclick="window.print()">
+          <span>🖨 Cetak Struk Sekarang</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="/js/common.js"></script>
+  <script>
+    let activeOrders = [];
+    let currentSelectedOrder = null;
+    let currentUser = null;
+
+    async function initKasir() {
+      // Check session role: must be kasir or owner
+      currentUser = await Maison.checkSession(['kasir', 'owner']);
+      if (!currentUser) return;
+
+      document.getElementById('cashier-name').textContent = currentUser.name;
+      loadActiveOrders();
+
+      // Auto poll every 10 seconds for new orders
+      setInterval(() => {
+        loadActiveOrders(true);
+      }, 10000);
+    }
+
+    function switchTab(tab) {
+      document.getElementById('tab-active-btn').classList.toggle('active', tab === 'active');
+      document.getElementById('tab-history-btn').classList.toggle('active', tab === 'history');
+      document.getElementById('tab-active').style.display = tab === 'active' ? 'block' : 'none';
+      document.getElementById('tab-history').style.display = tab === 'history' ? 'block' : 'none';
+
+      if (tab === 'history') {
+        loadHistory();
+      } else {
+        loadActiveOrders();
+      }
+    }
+
+    async function loadActiveOrders(isAutoPoll = false) {
+      try {
+        const filter = document.getElementById('filter-status-select').value;
+        const res = await Maison.fetchApi(`/api/kasir/orders?filter=${filter}`);
+        
+        // Detect if new orders arrived to ring chime
+        if (isAutoPoll && res.orders.length > activeOrders.length) {
+          Maison.playChime();
+          Maison.showToast('Pesanan baru masuk dari meja tamu!', 'warning');
+        }
+
+        activeOrders = res.orders;
+        document.getElementById('active-count-badge').textContent = activeOrders.length;
+        renderActiveOrders();
+      } catch (err) {
+        if (!isAutoPoll) Maison.showToast('Gagal memuat pesanan: ' + err.message, 'error');
+      }
+    }
+
+    function refreshOrders() {
+      loadActiveOrders();
+      Maison.showToast('Daftar pesanan diperbarui', 'info');
+    }
+
+    function renderActiveOrders() {
+      const container = document.getElementById('active-orders-container');
+      if (activeOrders.length === 0) {
+        container.innerHTML = `
+          <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 1rem; color: var(--text-muted); background: var(--bg-card); border-radius: 12px; border: 1px dashed var(--gold-border);">
+            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🛎</div>
+            <h3 style="color: var(--gold-light); margin-bottom: 0.25rem;">Tidak Ada Pesanan Menunggu</h3>
+            <p style="font-size: 0.85rem;">Pesanan baru dari customer di meja akan langsung tampil di sini.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = activeOrders.map(ord => {
+        const isPaid = ord.payment_status === 'paid';
+        const statusBadgeClass = `badge-${ord.status}`;
+        const payBadgeClass = isPaid ? 'badge-paid' : 'badge-unpaid';
+
+        return `
+          <div class="order-card ${isPaid ? 'paid' : 'unpaid'}">
+            <div class="order-header">
+              <div>
+                <span class="order-code">${ord.order_code}</span>
+                <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 2px;">
+                  ${Maison.formatTime(ord.created_at)} &bull; ${Maison.formatDate(ord.created_at)}
+                </div>
+              </div>
+              <div style="display: flex; gap: 0.4rem; flex-direction: column; align-items: flex-end;">
+                <span class="badge ${payBadgeClass}">${isPaid ? '✓ LUNAS' : 'BELUM BAYAR'}</span>
+                <span class="badge ${statusBadgeClass}">${ord.status.toUpperCase()}</span>
+              </div>
+            </div>
+
+            <div class="order-guest-info">
+              <div>👤 <strong>${ord.customer_name}</strong> &bull; <span style="color: var(--gold-light); font-weight: 600;">${ord.table_number}</span></div>
+              ${ord.notes ? `<div style="font-size: 0.75rem; color: var(--accent-amber); margin-top: 2px;">📝 ${ord.notes}</div>` : ''}
+            </div>
+
+            <div class="order-items-mini">
+              <ul style="list-style: none;">
+                ${ord.items.map(it => `
+                  <li>
+                    <span>${it.quantity}x ${it.menu_name}</span>
+                    <span>${Maison.formatRupiah(it.subtotal)}</span>
+                  </li>
+                `).join('')}
+              </ul>
+            </div>
+
+            <div class="order-footer">
+              <div>
+                <div style="font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase;">Total Tagihan</div>
+                <div class="order-total">${Maison.formatRupiah(ord.total_amount)}</div>
+              </div>
+
+              <div style="display: flex; gap: 0.4rem;">
+                ${!isPaid ? `
+                  <button class="btn-gold btn-sm" onclick="openPaymentModal(${ord.id})">
+                    <span>💳 Bayar</span>
+                  </button>
+                ` : `
+                  <button class="btn-outline-gold btn-sm" onclick="showReceiptModal(${ord.id})">
+                    <span>🖨 Struk</span>
+                  </button>
+                `}
+                <select class="form-select" style="width: auto; padding: 0.25rem 0.5rem; font-size: 0.75rem;" onchange="updateOrderStatus(${ord.id}, this.value)">
+                  <option value="" disabled selected>Status...</option>
+                  <option value="pending" ${ord.status === 'pending' ? 'selected' : ''}>Pending</option>
+                  <option value="cooking" ${ord.status === 'cooking' ? 'selected' : ''}>Cooking</option>
+                  <option value="ready" ${ord.status === 'ready' ? 'selected' : ''}>Ready</option>
+                  <option value="completed" ${ord.status === 'completed' ? 'selected' : ''}>Completed</option>
+                  <option value="cancelled" ${ord.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function updateOrderStatus(orderId, newStatus) {
+      try {
+        await Maison.fetchApi(`/api/kasir/order/${orderId}/status`, {
+          method: 'POST',
+          body: JSON.stringify({ status: newStatus })
+        });
+        Maison.showToast(`Status pesanan diubah ke ${newStatus}`, 'success');
+        loadActiveOrders();
+      } catch (err) {
+        Maison.showToast('Gagal mengubah status: ' + err.message, 'error');
+      }
+    }
+
+    // Payment Logic
+    function openPaymentModal(orderId) {
+      currentSelectedOrder = activeOrders.find(o => o.id === orderId);
+      if (!currentSelectedOrder) return;
+
+      document.getElementById('pay-order-code').textContent = currentSelectedOrder.order_code;
+      document.getElementById('pay-guest-info').textContent = `${currentSelectedOrder.customer_name} (${currentSelectedOrder.table_number})`;
+      document.getElementById('pay-total-amount').textContent = Maison.formatRupiah(currentSelectedOrder.total_amount);
+
+      // Default to cash
+      selectPaymentMethod('cash');
+
+      document.getElementById('payment-modal').classList.add('active');
+    }
+
+    function closePaymentModal() {
+      document.getElementById('payment-modal').classList.remove('active');
+    }
+
+    function selectPaymentMethod(method) {
+      document.getElementById('pay-method').value = method;
+      const tabCash = document.getElementById('pay-tab-cash');
+      const tabQris = document.getElementById('pay-tab-qris');
+      const secCash = document.getElementById('section-cash-payment');
+      const secQris = document.getElementById('section-qris-payment');
+      const confirmBtn = document.getElementById('confirm-pay-btn');
+
+      if (method === 'cash') {
+        tabCash.classList.add('active');
+        tabQris.classList.remove('active');
+        secCash.style.display = 'block';
+        secQris.style.display = 'none';
+        confirmBtn.innerHTML = '<span>✓ Selesaikan Pembayaran Tunai & Cetak Struk</span>';
+
+        document.getElementById('pay-received').value = currentSelectedOrder ? currentSelectedOrder.total_amount : 0;
+        calculateChange();
+      } else if (method === 'qris') {
+        tabQris.classList.add('active');
+        tabCash.classList.remove('active');
+        secCash.style.display = 'none';
+        secQris.style.display = 'block';
+        confirmBtn.innerHTML = '<span>✓ Konfirmasi Pembayaran QRIS & Cetak Struk</span>';
+
+        if (currentSelectedOrder) {
+          document.getElementById('pay-received').value = currentSelectedOrder.total_amount;
+          document.getElementById('qris-amount-badge').textContent = Maison.formatRupiah(currentSelectedOrder.total_amount);
+          drawQRISCode(currentSelectedOrder.order_code, currentSelectedOrder.total_amount);
+        }
+
+        confirmBtn.disabled = false;
+      }
+    }
+
+    // Dynamic QRIS QR Code Generator on Canvas
+    function drawQRISCode(orderCode, amount) {
+      const canvas = document.getElementById('qris-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const size = 188;
+      const grid = 25;
+      const mod = size / grid;
+
+      // Clear white background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, size, size);
+
+      // Helper: draw single module
+      function drawMod(r, c, isBlack) {
+        ctx.fillStyle = isBlack ? '#111111' : '#ffffff';
+        ctx.fillRect(c * mod, r * mod, mod + 0.3, mod + 0.3);
+      }
+
+      // Helper: draw finder pattern
+      function drawFinder(row, col) {
+        for (let r = 0; r < 7; r++) {
+          for (let c = 0; c < 7; c++) {
+            const isBorder = (r === 0 || r === 6 || c === 0 || c === 6);
+            const isCenter = (r >= 2 && r <= 4 && c >= 2 && c <= 4);
+            drawMod(row + r, col + c, isBorder || isCenter);
+          }
+        }
+      }
+
+      // Draw standard finder patterns at 3 corners
+      drawFinder(0, 0);
+      drawFinder(0, 18);
+      drawFinder(18, 0);
+
+      // Draw timing lines
+      for (let i = 8; i < 17; i++) {
+        drawMod(6, i, i % 2 === 0);
+        drawMod(i, 6, i % 2 === 0);
+      }
+
+      // Draw alignment pattern at (16, 16)
+      for (let r = 0; r < 5; r++) {
+        for (let c = 0; c < 5; c++) {
+          const isBorder = (r === 0 || r === 4 || c === 0 || c === 4);
+          const isCenter = (r === 2 && c === 2);
+          drawMod(16 + r, 16 + c, isBorder || isCenter);
+        }
+      }
+
+      // Generate deterministic modules using orderCode + amount
+      const seedStr = `${orderCode}_${amount}_MAISON_QRIS`;
+      let hash = 0;
+      for (let i = 0; i < seedStr.length; i++) {
+        hash = (hash * 31 + seedStr.charCodeAt(i)) & 0xffffffff;
+      }
+
+      for (let r = 0; r < grid; r++) {
+        for (let c = 0; c < grid; c++) {
+          // Skip finder patterns
+          if (r < 8 && (c < 8 || c >= 17)) continue;
+          if (r >= 17 && c < 8) continue;
+          if (r === 6 || c === 6) continue;
+          // Skip alignment pattern
+          if (r >= 16 && r <= 20 && c >= 16 && c <= 20) continue;
+          // Skip center overlay logo area
+          if (r >= 10 && r <= 14 && c >= 10 && c <= 14) continue;
+
+          // Pseudo-random bit based on position & hash
+          const val = ((r * 37 + c * 17 + hash) ^ (r * c)) % 100;
+          drawMod(r, c, val > 48);
+        }
+      }
+    }
+
+    function setQuickCash(amount) {
+      if (!currentSelectedOrder) return;
+      if (amount === 'exact') {
+        document.getElementById('pay-received').value = currentSelectedOrder.total_amount;
+      } else {
+        document.getElementById('pay-received').value = amount;
+      }
+      calculateChange();
+    }
+
+    function calculateChange() {
+      if (!currentSelectedOrder) return;
+      const total = currentSelectedOrder.total_amount;
+      const received = parseFloat(document.getElementById('pay-received').value) || 0;
+      const change = received - total;
+
+      const changeEl = document.getElementById('pay-change-amount');
+      if (change >= 0) {
+        changeEl.textContent = Maison.formatRupiah(change);
+        changeEl.style.color = '#34d399';
+        document.getElementById('confirm-pay-btn').disabled = false;
+      } else {
+        changeEl.textContent = 'Kurang ' + Maison.formatRupiah(Math.abs(change));
+        changeEl.style.color = '#f87171';
+        document.getElementById('confirm-pay-btn').disabled = true;
+      }
+    }
+
+    async function submitPayment() {
+      if (!currentSelectedOrder) return;
+      const total = currentSelectedOrder.total_amount;
+      const received = parseFloat(document.getElementById('pay-received').value) || 0;
+      const method = document.getElementById('pay-method').value;
+
+      if (received < total) {
+        Maison.showToast('Uang pembayaran kurang!', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('confirm-pay-btn');
+      btn.disabled = true;
+      btn.textContent = 'Memproses...';
+
+      try {
+        const res = await Maison.fetchApi(`/api/kasir/order/${currentSelectedOrder.id}/pay`, {
+          method: 'POST',
+          body: JSON.stringify({
+            payment_method: method,
+            paid_amount: received
+          })
+        });
+
+        Maison.showToast('Pembayaran sukses! Stok bahan baku berhasil dipotong otomatis.', 'success');
+        closePaymentModal();
+        loadActiveOrders();
+
+        // Immediately preview receipt
+        renderReceiptData(res.order);
+        document.getElementById('receipt-modal').classList.add('active');
+      } catch (err) {
+        Maison.showToast(err.message, 'error');
+        btn.disabled = false;
+        btn.textContent = '✓ Selesaikan & Cetak Struk';
+      }
+    }
+
+    // Receipt Logic
+    function showReceiptModal(orderId) {
+      const order = activeOrders.find(o => o.id === orderId);
+      if (!order) return;
+      renderReceiptData(order);
+      document.getElementById('receipt-modal').classList.add('active');
+    }
+
+    function closeReceiptModal() {
+      document.getElementById('receipt-modal').classList.remove('active');
+    }
+
+    function renderReceiptData(order) {
+      document.getElementById('rcpt-code').textContent = order.order_code;
+      document.getElementById('rcpt-date').textContent = Maison.formatDateTime(order.updated_at || order.created_at);
+      document.getElementById('rcpt-cashier').textContent = order.cashier_name || (currentUser ? currentUser.name : 'Kasir');
+      document.getElementById('rcpt-customer').textContent = order.customer_name;
+      document.getElementById('rcpt-table').textContent = order.table_number;
+
+      const itemsList = document.getElementById('rcpt-items-list');
+      itemsList.innerHTML = order.items.map(it => `
+        <div style="margin-bottom: 4px;">
+          <div class="receipt-row">
+            <span>${it.quantity}x ${it.menu_name}</span>
+            <span>${Maison.formatRupiah(it.subtotal)}</span>
+          </div>
+          <div style="font-size: 10px; color: #666; padding-left: 14px;">@ ${Maison.formatRupiah(it.price)}</div>
+        </div>
+      `).join('');
+
+      document.getElementById('rcpt-subtotal').textContent = Maison.formatRupiah(order.total_amount);
+      document.getElementById('rcpt-total').textContent = Maison.formatRupiah(order.total_amount);
+      const isQris = (order.payment_method || '').toLowerCase() === 'qris';
+      document.getElementById('rcpt-method').textContent = isQris ? 'QRIS DINAMIS' : 'TUNAI (CASH)';
+      document.getElementById('rcpt-paid').textContent = Maison.formatRupiah(order.paid_amount || order.total_amount);
+      document.getElementById('rcpt-change').textContent = isQris ? 'Rp 0 (Pas)' : Maison.formatRupiah(order.change_amount || 0);
+    }
+
+    // Transaction History Logic
+    async function loadHistory() {
+      try {
+        const q = encodeURIComponent(document.getElementById('history-search').value.trim());
+        const date = document.getElementById('history-date').value;
+
+        const res = await Maison.fetchApi(`/api/kasir/history?q=${q}&date=${date}`);
+        document.getElementById('history-total-sales').textContent = Maison.formatRupiah(res.totalSales);
+        document.getElementById('history-total-count').textContent = res.totalCount;
+
+        const tbody = document.getElementById('history-table-body');
+        if (res.orders.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2rem;">Tidak ada riwayat transaksi yang cocok.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = res.orders.map(ord => {
+          const isPaid = ord.payment_status === 'paid';
+          return `
+            <tr>
+              <td style="font-size: 0.8rem; color: var(--text-dim);">${Maison.formatDateTime(ord.created_at)}</td>
+              <td style="font-family: monospace; font-weight: 700; color: var(--gold-light);">${ord.order_code}</td>
+              <td><strong>${ord.customer_name}</strong></td>
+              <td><span style="color: var(--gold-primary);">${ord.table_number}</span></td>
+              <td style="font-size: 0.82rem; color: var(--text-muted);">
+                ${ord.items.map(it => `${it.quantity}x ${it.menu_name}`).join(', ')}
+              </td>
+              <td style="font-weight: 700; color: #fff;">${Maison.formatRupiah(ord.total_amount)}</td>
+              <td><span style="text-transform: uppercase; font-size: 0.78rem;">${ord.payment_method || '-'}</span></td>
+              <td><span class="badge ${isPaid ? 'badge-paid' : 'badge-unpaid'}">${isPaid ? 'LUNAS' : 'BELUM'}</span></td>
+              <td>
+                <button class="btn-outline-gold btn-sm" onclick='viewHistoricalReceipt(${JSON.stringify(ord)})'>
+                  Struk
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        Maison.showToast('Gagal memuat riwayat: ' + err.message, 'error');
+      }
+    }
+
+    function viewHistoricalReceipt(order) {
+      renderReceiptData(order);
+      document.getElementById('receipt-modal').classList.add('active');
+    }
+
+    // Initialize
+    initKasir();
+  </script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+# Node modules & dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Environment & runtime logs
+logs/
+*.log
+.system_generated/
+
+# OS metadata
+Thumbs.db
+.DS_Store
+
+# IDE configs
+.vscode/
+.idea/
