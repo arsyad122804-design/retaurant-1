@@ -1,8 +1,23 @@
 const { DatabaseSync } = require('node:sqlite');
 const path = require('node:path');
+const fs = require('node:fs');
 const crypto = require('node:crypto');
 
-const DB_PATH = path.join(__dirname, 'restaurant.db');
+const isVercel = process.env.VERCEL === '1' || process.env.VERCEL === 'true' || !!process.env.VERCEL_ENV;
+let DB_PATH = path.join(__dirname, 'restaurant.db');
+
+if (isVercel) {
+  const tmpDbPath = path.join('/tmp', 'restaurant.db');
+  if (fs.existsSync(DB_PATH) && !fs.existsSync(tmpDbPath)) {
+    try {
+      fs.copyFileSync(DB_PATH, tmpDbPath);
+    } catch (e) {
+      console.error('Failed to copy db to /tmp:', e);
+    }
+  }
+  DB_PATH = tmpDbPath;
+}
+
 const db = new DatabaseSync(DB_PATH);
 
 // Helper for hashing passwords with sha256 + salt
